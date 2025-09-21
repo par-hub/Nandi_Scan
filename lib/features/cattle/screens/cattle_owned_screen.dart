@@ -1,46 +1,89 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../controller/cattle_controller.dart';
+import '../models/cattle_model.dart';
 
-class CattleOwnedScreen extends StatelessWidget {
+class CattleOwnedScreen extends ConsumerStatefulWidget {
   const CattleOwnedScreen({super.key});
 
-  // Sample cattle data - replace with real data from database
-  final List<Map<String, String>> cattleData = const [
-    {
-      'name': 'Bella',
-      'height': '4.2 ft',
-      'color': 'Brown',
-      'weight': '450 kg',
-      'breed': 'Jersey',
-      'gender': 'Female',
-    },
-    {
-      'name': 'Max',
-      'height': '4.8 ft',
-      'color': 'Black',
-      'weight': '520 kg',
-      'breed': 'Holstein',
-      'gender': 'Male',
-    },
-    {
-      'name': 'Luna',
-      'height': '4.1 ft',
-      'color': 'White',
-      'weight': '420 kg',
-      'breed': 'Jersey',
-      'gender': 'Female',
-    },
-    {
-      'name': 'Rocky',
-      'height': '4.6 ft',
-      'color': 'Brown & White',
-      'weight': '480 kg',
-      'breed': 'Holstein',
-      'gender': 'Male',
-    },
-  ];
+  @override
+  ConsumerState<CattleOwnedScreen> createState() => _CattleOwnedScreenState();
+}
+
+class _CattleOwnedScreenState extends ConsumerState<CattleOwnedScreen> {
+  String? _currentUserEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  void _loadCurrentUser() {
+    final user = Supabase.instance.client.auth.currentUser;
+    setState(() {
+      _currentUserEmail = user?.email;
+    });
+  }
+
+  Future<void> _refreshCattle() async {
+    // Invalidate the provider to force a refresh
+    ref.invalidate(userCattleProvider);
+  }
+
+  void _showDeleteConfirmation(BuildContext context, CattleModel cattle) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Cattle'),
+          content: Text('Are you sure you want to delete ${cattle.displayName}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _deleteCattle(cattle.specifiedId);
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCattle(int specifiedId) async {
+    final controller = ref.read(cattleControllerProvider);
+    final error = await controller.deleteCattle(specifiedId);
+    
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cattle deleted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      // Refresh the list
+      _refreshCattle();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting cattle: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cattleAsyncValue = ref.watch(userCattleProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -49,6 +92,13 @@ class CattleOwnedScreen extends StatelessWidget {
         ),
         backgroundColor: const Color(0xFF6750A4),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _refreshCattle,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -60,9 +110,33 @@ class CattleOwnedScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
+            // User Info Section
+            if (_currentUserEmail != null)
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, color: Color(0xFF6750A4)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Logged in as: $_currentUserEmail',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6750A4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
             // Header Columns
             Container(
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -81,7 +155,7 @@ class CattleOwnedScreen extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'Name',
+                      'ID & Breed',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -129,7 +203,7 @@ class CattleOwnedScreen extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Breed',
+                      'Gender',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -141,7 +215,7 @@ class CattleOwnedScreen extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Gender',
+                      'Actions',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -154,116 +228,220 @@ class CattleOwnedScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 16),
+
             // Cattle List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: cattleData.length,
-                itemBuilder: (context, index) {
-                  final cattle = cattleData[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            cattle['name']!,
-                            style: const TextStyle(
+              child: cattleAsyncValue.when(
+                data: (cattleList) {
+                  if (cattleList.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.pets,
+                            size: 80,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No cattle registered yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            cattle['height']!,
-                            style: const TextStyle(
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add your first cattle using the registration screen',
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.black54,
+                              color: Colors.white.withOpacity(0.8),
                             ),
                             textAlign: TextAlign.center,
                           ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            cattle['color']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            cattle['weight']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            cattle['breed']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: cattle['gender'] == 'Male'
-                                  ? Colors.blue.withOpacity(0.1)
-                                  : Colors.pink.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              cattle['gender']!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: cattle['gender'] == 'Male'
-                                    ? Colors.blue
-                                    : Colors.pink,
+                        ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: _refreshCattle,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: cattleList.length,
+                      itemBuilder: (context, index) {
+                        final cattle = cattleList[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
+                            ],
                           ),
-                        ),
-                      ],
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '#${cattle.specifiedId}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    Text(
+                                      cattle.breedName ?? 'Unknown',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  cattle.heightInFeet,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  cattle.color,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  cattle.weightFormatted,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: cattle.genderDisplay == 'Male'
+                                        ? Colors.blue.withOpacity(0.1)
+                                        : Colors.pink.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    cattle.genderDisplay,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: cattle.genderDisplay == 'Male'
+                                          ? Colors.blue
+                                          : Colors.pink,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => _showDeleteConfirmation(context, cattle),
+                                  tooltip: 'Delete',
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
+                loading: () => const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading your cattle...',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error,
+                        size: 80,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Error loading cattle',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        error.toString(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _refreshCattle,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
@@ -273,14 +451,7 @@ class CattleOwnedScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to add cattle screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Add new cattle functionality coming soon!',
-                      ),
-                    ),
-                  );
+                  Navigator.of(context).pushNamed('/registration');
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add New Cattle'),

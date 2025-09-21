@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cnn/features/registration/controller/registration_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AnimalRegistrationScreen extends ConsumerStatefulWidget {
   const AnimalRegistrationScreen({super.key});
@@ -21,6 +22,8 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
   bool _isLoading = false;
   List<String> _availableBreeds = [];
   List<String> _availableGenders = [];
+  String? _currentUserEmail;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -28,8 +31,22 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
     print('Initializing registration screen...'); // Debug print
     // Initialize dropdown data
     _initializeDropdowns();
+    _loadCurrentUser();
     print('Breeds loaded: ${_availableBreeds.length}'); // Debug print
     print('Genders loaded: ${_availableGenders.length}'); // Debug print
+  }
+
+  void _loadCurrentUser() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUserEmail = user.email;
+        _currentUserId = user.id;
+      });
+      print('Current user loaded: ${user.email} (${user.id})');
+    } else {
+      print('No user currently logged in');
+    }
   }
 
   void _loadGendersForBreed(String breed) {
@@ -318,6 +335,65 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
 
               const SizedBox(height: 30),
 
+              // Current User Info
+              if (_currentUserEmail != null)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.blue.shade50,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.person, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text(
+                            'Registering for:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SelectableText('Email: $_currentUserEmail'),
+                      SelectableText('User ID: ${_currentUserId?.substring(0, 8)}...'),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.red.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.red.shade50,
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.red),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Please sign in to register cattle',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Breed Dropdown
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -524,7 +600,7 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: _currentUserEmail != null ? Colors.black : Colors.grey,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -533,10 +609,10 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
                           vertical: 12,
                         ),
                       ),
-                      onPressed: _registerCattle,
-                      child: const Text(
-                        "Register Cattle",
-                        style: TextStyle(
+                      onPressed: _currentUserEmail != null ? _registerCattle : null,
+                      child: Text(
+                        _currentUserEmail != null ? "Register Cattle" : "Sign In Required",
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -573,6 +649,9 @@ class _AnimalRegistrationScreenState extends ConsumerState<AnimalRegistrationScr
                     const SizedBox(height: 8),
                     SelectableText('Available breeds: ${_availableBreeds.length}'),
                     SelectableText('Available genders: ${_availableGenders.length}'),
+                    const SizedBox(height: 8),
+                    SelectableText('Current User Email: ${_currentUserEmail ?? "Not logged in"}'),
+                    SelectableText('Current User ID: ${_currentUserId ?? "None"}'),
                     const SizedBox(height: 8),
                     const Text(
                       '💡 All error messages are now copy-able via dialogs',

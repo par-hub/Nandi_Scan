@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cnn/features/Auth/color_palet.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({super.key});

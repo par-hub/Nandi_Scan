@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# User data JSON file (contains sensitive user information)
+user_data.json

@@ -1,6 +1,6 @@
-import 'dart:ui';
-
 import 'package:cnn/common/button.dart';
+import 'package:cnn/common/user_storage.dart';
+import 'package:cnn/common/user_data_debug_screen.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/widgets/auth_field.dart';
 import 'package:flutter/material.dart';
@@ -49,6 +49,8 @@ class _SignUpState extends ConsumerState<SignUp> {
     final confirmPassword = confirmPasswordController.text;
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
+
+    print('🔄 Starting signup process...');
 
     // Basic validation
     if (name.isEmpty) {
@@ -116,11 +118,15 @@ class _SignUpState extends ConsumerState<SignUp> {
       return;
     }
 
+    print('✅ Validation passed, setting loading state...');
     setState(() => _isLoading = true);
 
     try {
+      print('🔄 Getting auth controller...');
       // Get the auth controller from the provider
       final authController = ref.read(authControllerProvider);
+      
+      print('🔄 Calling authController.signUp...');
       final value = await authController.signUp(
         email,
         password,
@@ -128,13 +134,38 @@ class _SignUpState extends ConsumerState<SignUp> {
         name,
         phone,
       );
+      
+      print('📧 Auth controller returned: $value');
+
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
 
       if (value == null) {
+        print('✅ Signup successful, getting user ID...');
+        // Get the current user ID for display
+        final userId = await UserStorage.getCurrentUserId();
+        final filePath = UserStorage.getFilePath();
+        
+        print('📱 User ID: $userId');
+        print('💾 File path: $filePath');
+        
+        // Check if widget is still mounted before using context
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Sign up successful! Please check your email for confirmation if required.',
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('✅ Sign up successful!'),
+                const SizedBox(height: 4),
+                Text('📱 User ID: ${userId ?? 'N/A'}'),
+                const SizedBox(height: 4),
+                Text('💾 Saved to: ${filePath.split('\\').last}'),
+              ],
             ),
+            duration: const Duration(seconds: 5),
           ),
         );
         // Clear the form
@@ -144,12 +175,29 @@ class _SignUpState extends ConsumerState<SignUp> {
         nameController.clear();
         phoneController.clear();
       } else {
+        print('❌ Signup failed: $value');
+        // Check if widget is still mounted before using context
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $value')));
       }
+    } catch (e, stackTrace) {
+      print('❌ Exception in signup: $e');
+      print('📚 Stack trace: $stackTrace');
+      
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: ${e.toString()}')),
+      );
     } finally {
-      setState(() => _isLoading = false);
+      print('🔄 Finishing signup, clearing loading state...');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -251,7 +299,7 @@ class _SignUpState extends ConsumerState<SignUp> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            "Not a user? ",
+                            "Already have an account? ",
                             style: TextStyle(color: Colors.white70),
                           ),
                           GestureDetector(
@@ -265,6 +313,24 @@ class _SignUpState extends ConsumerState<SignUp> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 20),
+                      // Debug button to view JSON file
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UserDataDebugScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.bug_report),
+                        label: const Text('View User Data (Debug)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ],
                   ),

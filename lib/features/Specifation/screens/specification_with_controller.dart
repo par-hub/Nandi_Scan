@@ -36,12 +36,6 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     setState(() {});
   }
 
-  void _clearData() {
-    _controller.clearData();
-    _breedController.clear();
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -149,22 +149,20 @@ Copy this entire message for debugging.
 
   /// Register cattle with user-defined features
   Future<String?> registerCattle(CattleRegistrationModel cattle) async {
-    int userId = 0;  // Changed to int
+    String userId = '';  // Changed to String for UUID
     Map<String, dynamic> userDefinedFeatures = {};
     
     try {
       // Get current user
       final user = supabase.auth.currentUser;
       
-      // For testing purposes, create a temporary user ID if no user is authenticated
+      // Require authenticated user - no more test mode
       if (user == null) {
-        // Use a test user ID for development
-        userId = 12345;  // Test integer user ID
-        print('No authenticated user, using test user ID: $userId');
+        return "User not authenticated. Please sign in first.";
       } else {
-        // Convert UUID to integer using hashCode
-        userId = user.id.hashCode.abs();  // Convert UUID to positive integer
-        print('Registering cattle for authenticated user: ${user.id} (mapped to ID: $userId)');
+        // Use the actual UUID string directly
+        userId = user.id;  // Use UUID directly without conversion
+        print('Registering cattle for authenticated user: $userId');
       }
       
       // Try to get the breed_id from cow_buffalo table
@@ -262,8 +260,8 @@ Copy this entire message for debugging.
         return [];
       }
 
-      // Convert UUID to integer using same method as registration
-      final userId = user.id.hashCode.abs();
+      // Use the actual UUID string directly
+      final userId = user.id;
 
       final response = await supabase
           .from('user_defined_features')
@@ -273,7 +271,7 @@ Copy this entire message for debugging.
               breed
             )
           ''')
-          .eq('user_id', userId);  // Use integer user ID
+          .eq('user_id', userId);  // Use UUID string
 
       return (response as List).map((item) {
         return CattleRegistrationModel(
@@ -300,8 +298,8 @@ Copy this entire message for debugging.
         return "User not authenticated";
       }
 
-      // Convert UUID to integer using same method as registration
-      final userId = user.id.hashCode.abs();
+      // Use the actual UUID string directly
+      final userId = user.id;
 
       await supabase
           .from('user_defined_features')
@@ -312,7 +310,7 @@ Copy this entire message for debugging.
             'gender': cattle.gender,
           })
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);  // Use integer user ID
+          .eq('user_id', userId);  // Use UUID string
 
       return null; // Success
     } catch (e) {
@@ -328,14 +326,14 @@ Copy this entire message for debugging.
         return "User not authenticated";
       }
 
-      // Convert UUID to integer using same method as registration
-      final userId = user.id.hashCode.abs();
+      // Use the actual UUID string directly
+      final userId = user.id;
 
       await supabase
           .from('user_defined_features')
           .delete()
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);  // Use integer user ID
+          .eq('user_id', userId);  // Use UUID string
 
       // Decrement cattles_owned in User_details table
       await _decrementUserCattleCount(userId);
@@ -348,7 +346,7 @@ Copy this entire message for debugging.
   }
 
   /// Private method to increment cattle count in User_details table
-  Future<void> _incrementUserCattleCount(int userId) async {
+  Future<void> _incrementUserCattleCount(String userId) async {
     try {
       // First, check if user exists in User_details table
       final existingUser = await supabase
@@ -383,7 +381,7 @@ Copy this entire message for debugging.
   }
 
   /// Private method to decrement cattle count in User_details table
-  Future<void> _decrementUserCattleCount(int userId) async {
+  Future<void> _decrementUserCattleCount(String userId) async {
     try {
       // Check if user exists in User_details table
       final existingUser = await supabase
