@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cnn/features/registration/controller/registration_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AnimalRegistrationScreen extends ConsumerStatefulWidget {
   static const routeName = '/registration';
@@ -26,6 +30,11 @@ class _AnimalRegistrationScreenState
   List<String> _availableGenders = [];
   String? _currentUserEmail;
   String? _currentUserId;
+  
+  // Image picker variables
+  File? _selectedImage;
+  XFile? _selectedImageWeb; // For web platform
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -107,6 +116,8 @@ class _AnimalRegistrationScreenState
     setState(() {
       _selectedBreed = null;
       _selectedGender = null;
+      _selectedImage = null; // Clear the selected image
+      _selectedImageWeb = null; // Clear web image
       // Reset dropdowns to original values to ensure they work for next registration
       _initializeDropdowns();
     });
@@ -234,6 +245,87 @@ class _AnimalRegistrationScreenState
     );
   }
 
+  // Image picker method
+  Future<void> _pickImage() async {
+    try {
+      showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera),
+                  title: const Text('Take Photo'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final pickedFile = await _imagePicker.pickImage(
+                      source: ImageSource.camera,
+                      maxWidth: 1024,
+                      maxHeight: 1024,
+                      imageQuality: 80,
+                    );
+                    if (pickedFile != null) {
+                      setState(() {
+                        if (kIsWeb) {
+                          _selectedImageWeb = pickedFile;
+                          _selectedImage = null;
+                        } else {
+                          _selectedImage = File(pickedFile.path);
+                          _selectedImageWeb = null;
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Choose from Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final pickedFile = await _imagePicker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 1024,
+                      maxHeight: 1024,
+                      imageQuality: 80,
+                    );
+                    if (pickedFile != null) {
+                      setState(() {
+                        if (kIsWeb) {
+                          _selectedImageWeb = pickedFile;
+                          _selectedImage = null;
+                        } else {
+                          _selectedImage = File(pickedFile.path);
+                          _selectedImageWeb = null;
+                        }
+                      });
+                    }
+                  },
+                ),
+                if (_selectedImage != null || _selectedImageWeb != null)
+                  ListTile(
+                    leading: const Icon(Icons.delete),
+                    title: const Text('Remove Image'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _selectedImage = null;
+                        _selectedImageWeb = null;
+                      });
+                    },
+                  ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to pick image: ${e.toString()}');
+    }
+  }
+
   @override
   void dispose() {
     _heightController.dispose();
@@ -281,35 +373,84 @@ class _AnimalRegistrationScreenState
                       Stack(
                         alignment: Alignment.center,
                         children: [
-                          Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(
-                                20,
-                              ), // Rounded corners, adjust as needed
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "Add image",
-                                style: TextStyle(
-                                  color: Colors.teal,
-                                  fontSize: 18,
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 2,
                                 ),
                               ),
+                              child: _selectedImage != null || _selectedImageWeb != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: kIsWeb && _selectedImageWeb != null
+                                          ? FutureBuilder<Uint8List>(
+                                              future: _selectedImageWeb!.readAsBytes(),
+                                              builder: (context, snapshot) {
+                                                if (snapshot.hasData) {
+                                                  return Image.memory(
+                                                    snapshot.data!,
+                                                    width: 136,
+                                                    height: 136,
+                                                    fit: BoxFit.cover,
+                                                  );
+                                                }
+                                                return const Center(child: CircularProgressIndicator());
+                                              },
+                                            )
+                                          : _selectedImage != null
+                                              ? Image.file(
+                                                  _selectedImage!,
+                                                  width: 136,
+                                                  height: 136,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : Container(),
+                                    )
+                                  : const Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_a_photo,
+                                            color: Colors.teal,
+                                            size: 40,
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            "Add image",
+                                            style: TextStyle(
+                                              color: Colors.teal,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                             ),
                           ),
                           Positioned(
                             bottom: 5,
                             right: 5,
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 18,
-                              child: Icon(
-                                Icons.add_circle,
-                                color: Colors.blue,
-                                size: 30,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: CircleAvatar(
+                                backgroundColor: Colors.blue,
+                                radius: 18,
+                                child: Icon(
+                                  _selectedImage != null || _selectedImageWeb != null
+                                      ? Icons.edit
+                                      : Icons.add_circle,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
                               ),
                             ),
                           ),
