@@ -33,6 +33,23 @@ class _SignUpState extends ConsumerState<SignUp> {
   File? _avatarFile;
 
   @override
+  void initState() {
+    super.initState();
+    _checkIfAlreadyLoggedIn();
+  }
+
+  Future<void> _checkIfAlreadyLoggedIn() async {
+    // Check if user is already authenticated when signup page loads
+    final authController = ref.read(authControllerProvider);
+    final isAuthenticated = await authController.isAuthenticated();
+    
+    if (isAuthenticated && mounted) {
+      // User is already logged in, navigate to home
+      Navigator.of(context).pushReplacementNamed(Home.routeName);
+    }
+  }
+
+  @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();

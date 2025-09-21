@@ -1,22 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cnn/common/app_theme.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
+import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
+import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 import 'package:cnn/home.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/features/health/screen/health.dart';
 
-class UserDrawer extends StatelessWidget {
+class UserDrawer extends ConsumerWidget {
   const UserDrawer({super.key});
 
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
     try {
-      final supabase = Supabase.instance.client;
-      await supabase.auth.signOut();
+      print('🚪 Starting logout process...');
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
 
-      // Navigate to login page
+      // Use our auth controller to sign out
+      final authController = ref.read(authControllerProvider);
+      await authController.signOut();
+
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      print('✅ Logout successful, navigating to login...');
+
+      // Navigate to login page and clear navigation stack
       if (context.mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil(
           LoginPage.routeName,
@@ -24,17 +42,24 @@ class UserDrawer extends StatelessWidget {
         );
       }
     } catch (e) {
-      print('Error during logout: $e');
+      print('❌ Error during logout: $e');
+      
+      // Close loading dialog if it's still open
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error during logout')));
+        Navigator.of(context).pop();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error during logout: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       child: Container(
         decoration: const BoxDecoration(
@@ -98,6 +123,7 @@ class UserDrawer extends StatelessWidget {
               title: 'Profile',
               onTap: () {
                 Navigator.pop(context);
+                Navigator.pushNamed(context, '/profile');
               },
             ),
 
@@ -178,7 +204,10 @@ class UserDrawer extends StatelessWidget {
             _drawerItem(
               icon: Icons.settings,
               title: 'Settings',
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/settings');
+              },
             ),
             _drawerItem(
               icon: Icons.help_outline,
@@ -194,7 +223,7 @@ class UserDrawer extends StatelessWidget {
               title: 'Logout',
               iconColor: Colors.red,
               titleColor: Colors.red,
-              onTap: () => _logout(context),
+              onTap: () => _logout(context, ref),
             ),
           ],
         ),

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cnn/common/user_drawer.dart';
 
 class AnimalRegistrationScreen extends ConsumerStatefulWidget {
   static const routeName = '/registration';
@@ -337,7 +338,7 @@ class _AnimalRegistrationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(), // side drawer
+      drawer: const UserDrawer(), // unified side drawer
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

@@ -18,6 +18,24 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfAlreadyLoggedIn();
+  }
+
+  Future<void> _checkIfAlreadyLoggedIn() async {
+    // Check if user is already authenticated when login page loads
+    final authController = ref.read(authControllerProvider);
+    final isAuthenticated = await authController.isAuthenticated();
+    
+    if (isAuthenticated && mounted) {
+      // User is already logged in, navigate to home
+      Navigator.of(context).pushReplacementNamed(Home.routeName);
+    }
+  }
 
   @override
   void dispose() {
@@ -45,25 +63,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
 
-    // Get the auth controller from the provider
-    final authController = ref.read(authControllerProvider);
-    final value = await authController.signIn(email, password);
+    setState(() => _isLoading = true);
 
-    if (value == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Login successful!')));
-      // Clear the form
-      emailController.clear();
-      passwordController.clear();
-      // Navigate to Home (named route) and remove previous routes
-      if (mounted) {
-        Navigator.of(context).pushNamed(Home.routeName);
+    try {
+      // Get the auth controller from the provider
+      final authController = ref.read(authControllerProvider);
+      final value = await authController.signIn(email, password);
+
+      if (!mounted) return;
+
+      if (value == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+        // Clear the form
+        emailController.clear();
+        passwordController.clear();
+        // Navigate to Home (named route) and remove previous routes
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          Home.routeName,
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $value')));
       }
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $value')));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -192,9 +227,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          child: Button(
-                            onPressed: () => login(context),
-                            text: 'Login',
+                          child: AbsorbPointer(
+                            absorbing: _isLoading,
+                            child: Button(
+                              onPressed: () => login(context),
+                              text: _isLoading ? 'Signing In...' : 'Login',
+                            ),
                           ),
                         ),
                       ],
