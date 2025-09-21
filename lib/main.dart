@@ -2,7 +2,8 @@ import 'package:cnn/common/supabase_config.dart';
 import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
-
+import "package:cnn/features/health/screen/health.dart";
+import 'package:cnn/home.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: AppTheme.lightTheme,
       onGenerateRoute: (settings) => generateRoute(settings),
-      home: LoginPage(),
+      home: Home(),
     );
   }
 }
