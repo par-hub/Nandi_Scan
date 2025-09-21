@@ -1,10 +1,13 @@
 import 'dart:ui';
+import 'dart:io';
 
 import 'package:cnn/common/button.dart';
+import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
-import 'package:cnn/features/Auth/widgets/auth_field.dart';
+import 'package:cnn/features/Auth/screens/login_page.dart';
+import 'package:cnn/home.dart';
 import 'package:flutter/material.dart';
-import 'package:cnn/features/Auth/color_palet.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SignUp extends ConsumerStatefulWidget {
@@ -22,6 +25,10 @@ class _SignUpState extends ConsumerState<SignUp> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  final ImagePicker _picker = ImagePicker();
+  File? _avatarFile;
 
   @override
   void dispose() {
@@ -31,6 +38,21 @@ class _SignUpState extends ConsumerState<SignUp> {
     nameController.dispose();
     phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    try {
+      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked != null) {
+        setState(() {
+          _avatarFile = File(picked.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to pick image')));
+      }
+    }
   }
 
   // Email validation function
@@ -143,6 +165,13 @@ class _SignUpState extends ConsumerState<SignUp> {
         confirmPasswordController.clear();
         nameController.clear();
         phoneController.clear();
+        // Navigate to Home and remove previous routes
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => Home()),
+            (route) => false,
+          );
+        }
       } else {
         ScaffoldMessenger.of(
           context,
@@ -158,118 +187,235 @@ class _SignUpState extends ConsumerState<SignUp> {
     return Scaffold(
       body: Stack(
         children: [
-          Container(color: ColorPalet.backgroundColorAuth),
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/cow1.png"),
+          // Themed gradient background
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppTheme.backgroundGradient,
+              ),
+            ),
+          ),
+          // Faint background image overlay
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.08,
+              child: Image.asset(
+                'assets/cow1.png',
                 fit: BoxFit.cover,
-                opacity: 0.3,
               ),
             ),
           ),
           SingleChildScrollView(
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 20),
-                  alignment: Alignment.center,
-                  child: CircleAvatar(
-                    radius: 55,
-                    backgroundColor: ColorPalet.backgroundColorAuth,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage("assets/cow1.png"),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryGreen.withOpacity(0.25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.person_add, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Create your account',
+                                  style: AppTheme.headingSmall.copyWith(color: Colors.white)),
+                              Text('Join the Farmer App',
+                                  style: AppTheme.bodyMedium.copyWith(color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Sign Up",
-                  style: TextStyle(
-                    fontSize: 28,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Georgia',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
-                          hintText: "Enter your full name",
-                          controller: nameController,
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
-                          hintText: "Enter your phone number",
-                          controller: phoneController,
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
-                          hintText: "Enter your email",
-                          controller: emailController,
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
-                          hintText: "Password",
-                          controller: passwordController,
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
-                          hintText: "Confirm Password",
-                          controller: confirmPasswordController,
-                        ),
-                      ),
 
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: AbsorbPointer(
-                          absorbing: _isLoading,
-                          child: Button(
-                            onPressed: () => signup(context),
-                            text: _isLoading ? 'Signing Up...' : 'SignUP',
+                  const SizedBox(height: 24),
+
+                  // Circular Avatar (tap to change)
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickAvatar,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppTheme.accentGradient,
+                        ),
+                        child: CircleAvatar(
+                          radius: 44,
+                          backgroundColor: Colors.white,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundImage: _avatarFile != null
+                                    ? FileImage(_avatarFile!) as ImageProvider
+                                    : const AssetImage('assets/cow1.png'),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.edit, size: 14, color: AppTheme.primaryGreen),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Not a user? ",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          GestureDetector(
-                            onTap: () {},
-                            child: const Text(
-                              "Login",
-                              style: TextStyle(
-                                color: Colors.blueAccent,
-                                fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Glassmorphism Form Card
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.65),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: nameController,
+                              textInputAction: TextInputAction.next,
+                              decoration: AppTheme.inputDecoration(
+                                hintText: 'Full name',
+                                prefixIcon: Icons.person,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: phoneController,
+                              keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.next,
+                              decoration: AppTheme.inputDecoration(
+                                hintText: 'Phone number',
+                                prefixIcon: Icons.phone,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              decoration: AppTheme.inputDecoration(
+                                hintText: 'Email address',
+                                prefixIcon: Icons.email,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: passwordController,
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.next,
+                              decoration: AppTheme.inputDecoration(
+                                hintText: 'Password',
+                                prefixIcon: Icons.lock,
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                      color: AppTheme.textSecondary),
+                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: confirmPasswordController,
+                              obscureText: _obscureConfirm,
+                              textInputAction: TextInputAction.done,
+                              decoration: AppTheme.inputDecoration(
+                                hintText: 'Confirm password',
+                                prefixIcon: Icons.lock_outline,
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                                      color: AppTheme.textSecondary),
+                                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              child: AbsorbPointer(
+                                absorbing: _isLoading,
+                                child: Button(
+                                  onPressed: () => signup(context),
+                                  text: _isLoading ? 'Signing Up...' : 'Sign Up',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Already have an account? ",
+                        style: AppTheme.bodyMedium,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, LoginPage.routeName);
+                        },
+                        child: Text(
+                          "Login",
+                          style: AppTheme.labelLarge.copyWith(color: AppTheme.accentTeal),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

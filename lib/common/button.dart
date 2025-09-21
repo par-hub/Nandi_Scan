@@ -1,12 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
-
-import 'package:cnn/features/Auth/color_palet.dart';
+import 'package:cnn/common/app_theme.dart';
 
 class Button extends StatefulWidget {
   final VoidCallback onPressed;
   final String text;
-  const Button({Key? key, required this.onPressed, required this.text})
+  final Color? color;
+  const Button({Key? key, required this.onPressed, required this.text, this.color})
     : super(key: key);
 
   @override
@@ -20,8 +20,9 @@ class _ButtonState extends State<Button> {
       onPressed: widget.onPressed,
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        backgroundColor: ColorPalet.backgroundColorAuth,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: widget.color ?? AppTheme.primaryGreen,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
       ),
       child: Text(
         widget.text,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../Controller/spec_controller.dart';
 import '../Repository/specrepo.dart';
+import '../../../common/app_theme.dart';
 
 class SpecificationScreen extends StatefulWidget {
+  static const routeName = '/specification';
   const SpecificationScreen({super.key});
 
   @override
@@ -12,6 +14,7 @@ class SpecificationScreen extends StatefulWidget {
 class _SpecificationScreenState extends State<SpecificationScreen> {
   late final SpecController _controller;
   final TextEditingController _breedController = TextEditingController();
+  String? _selectedGender; // New state variable for gender selection
 
   @override
   void initState() {
@@ -32,7 +35,16 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   }
 
   Future<void> _checkBreedSpecifications() async {
-    await _controller.fetchBreedSpecifications(_breedController.text);
+    String? genderParam;
+    if (_selectedGender == 'male') {
+      genderParam = 'm';
+    } else if (_selectedGender == 'female') {
+      genderParam = 'f';
+    }
+    await _controller.fetchBreedSpecifications(
+      _breedController.text,
+      gender: genderParam,
+    );
     setState(() {});
   }
 
@@ -46,304 +58,529 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: _buildDrawer(),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
-          "Check Breed Specifications",
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          "Breed Specifications",
+          style: AppTheme.headingMedium.copyWith(color: Colors.white),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header section with gradient
-            Container(
-              width: double.infinity,
-              height: 220,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Modern header section with gradient and floating card
+              Container(
+                width: double.infinity,
+                height: 280,
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(40),
+                  ),
                 ),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(60),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(30.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Stack(
                   children: [
-                    const Icon(Icons.pets, size: 60, color: Colors.white),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Breed Specification Checker",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    // Background pattern
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(40),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.1),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                    ),
+                    // Content
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 100, 24, 40),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.pets,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Discover Breed Details",
+                            style: AppTheme.headingLarge.copyWith(
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Get comprehensive information about livestock breeds",
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
 
-            const SizedBox(height: 30),
+              // Input section with floating card
+              Transform.translate(
+                offset: const Offset(0, -30),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    decoration: AppTheme.cardDecoration,
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Search Breed",
+                          style: AppTheme.headingSmall,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _breedController,
+                          decoration: AppTheme.inputDecoration(
+                            hintText: "Enter breed name (e.g., Murrah)",
+                            prefixIcon: Icons.search,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
 
-            // Input section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _breedController,
-                    decoration: InputDecoration(
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        borderSide: const BorderSide(
-                          color: Colors.blue,
-                          width: 3,
+                        // Modern gender selection
+                        Text(
+                          "Select Gender",
+                          style: AppTheme.labelLarge,
                         ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        borderSide: const BorderSide(
-                          color: Colors.grey,
-                          width: 3,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.all(22),
-                      hintText: "Enter breed name (e.g., Murrah)",
-                      hintStyle: const TextStyle(fontSize: 18),
-                      prefixIcon: const Icon(Icons.pets, color: Colors.blue),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 12,
-                      ),
-                    ),
-                    onPressed: _controller.isLoading
-                        ? null
-                        : () => _checkBreedSpecifications(),
-                    child: _controller.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildGenderOption('male', 'Male', Icons.male),
                             ),
-                          )
-                        : const Text(
-                            "Check Specifications",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildGenderOption('female', 'Female', Icons.female),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Modern button
+                        SizedBox(
+                          width: double.infinity,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryGreen.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: _controller.isLoading
+                                  ? null
+                                  : () => _checkBreedSpecifications(),
+                              child: _controller.isLoading
+                                  ? const SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.search, color: Colors.white),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "Check Specifications",
+                                          style: AppTheme.labelLarge.copyWith(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                             ),
                           ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Error message
-            if (_controller.error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error, color: Colors.red),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _controller.error!,
-                          style: const TextStyle(color: Colors.red),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
 
-            // Breed specifications display
-            if (_controller.breedData != null) ...[
-              const SizedBox(height: 30),
-              _buildSpecificationsCard(_controller.breedData!),
-            ],
+              // Error message with modern styling
+              if (_controller.error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: AppTheme.error),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _controller.error!,
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-            const SizedBox(height: 100),
+              // Breed specifications display
+              if (_controller.breedData != null) ...[
+                _buildSpecificationsCard(_controller.breedData!),
+              ],
+
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenderOption(String value, String label, IconData icon) {
+    final isSelected = _selectedGender == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedGender = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : AppTheme.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTheme.labelLarge.copyWith(
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
-      backgroundColor: Colors.lightBlue[50],
     );
   }
 
   Widget _buildDrawer() {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF6750A4)),
-            child: Text(
-              'Farmer APP',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+              ),
+              child: DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.agriculture,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Farmer App',
+                      style: AppTheme.headingLarge.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Livestock Management',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home, color: Color(0xFF6750A4)),
-            title: const Text('Home'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/home');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.pets, color: Color(0xFF6750A4)),
-            title: const Text('Specifications'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.app_registration,
-              color: Color(0xFF6750A4),
+            const SizedBox(height: 8),
+            _buildDrawerItem(
+              icon: Icons.home,
+              title: 'Home',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/home');
+              },
             ),
-            title: const Text('Registration'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/registration');
-            },
+            _buildDrawerItem(
+              icon: Icons.pets,
+              title: 'Specifications',
+              isSelected: true,
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.app_registration,
+              title: 'Registration',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/registration');
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.health_and_safety,
+              title: 'Health',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 32),
+            _buildDrawerItem(
+              icon: Icons.settings,
+              title: 'Settings',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.help_outline,
+              title: 'Help & Support',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.primaryGreen.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isSelected ? AppTheme.primaryGreen : AppTheme.textSecondary,
+        ),
+        title: Text(
+          title,
+          style: AppTheme.bodyLarge.copyWith(
+            color: isSelected ? AppTheme.primaryGreen : AppTheme.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
-        ],
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
 
   Widget _buildSpecificationsCard(Map<String, dynamic> data) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        decoration: AppTheme.cardDecoration,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Breed header
-              Row(
-                children: [
-                  const Icon(Icons.pets, color: Colors.blue, size: 30),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      data['name'] ?? 'Unknown Breed',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+              // Modern breed header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.accentGradient,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.pets, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data['name'] ?? 'Unknown Breed',
+                            style: AppTheme.headingMedium.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              data['type'] ?? 'Unknown',
+                              style: AppTheme.labelMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[100],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      data['type'] ?? 'Unknown',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
-              const Divider(height: 30),
+              const SizedBox(height: 24),
 
               // Characteristics section
-              _buildSectionTitle('Characteristics'),
+              _buildSectionTitle('Physical Characteristics', Icons.straighten),
               _buildCharacteristicsGrid(data['characteristics']),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Production section
-              _buildSectionTitle('Production Details'),
+              _buildSectionTitle('Production Details', Icons.trending_up),
               _buildProductionGrid(data['production']),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Adaptability section
-              _buildSectionTitle('Adaptability'),
+              _buildSectionTitle('Adaptability', Icons.thermostat),
               _buildAdaptabilityGrid(data['adaptability']),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Special features
-              _buildSectionTitle('Special Features'),
+              _buildSectionTitle('Special Features', Icons.star),
               _buildFeaturesList(data['special_features']),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Care requirements
-              _buildSectionTitle('Care Requirements'),
+              _buildSectionTitle('Care Requirements', Icons.health_and_safety),
               _buildFeaturesList(data['care_requirements']),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Origin
               if (data['origin'] != null && data['origin'] != 'Unknown')
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('Origin'),
+                    _buildSectionTitle('Origin', Icons.location_on),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.primaryGreen.withOpacity(0.2),
+                        ),
                       ),
                       child: Text(
                         data['origin'],
-                        style: const TextStyle(fontSize: 14),
+                        style: AppTheme.bodyLarge.copyWith(
+                          color: AppTheme.primaryGreen,
+                        ),
                       ),
                     ),
                   ],
@@ -355,16 +592,33 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, [IconData? icon]) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: AppTheme.primaryGreen,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          Text(
+            title,
+            style: AppTheme.headingSmall.copyWith(
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -376,15 +630,25 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 2.5,
       children: characteristics.entries.map((entry) {
         return Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryGreen.withOpacity(0.1),
+                AppTheme.lightGreen.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.primaryGreen.withOpacity(0.2),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,16 +656,17 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             children: [
               Text(
                 entry.key.replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.primaryGreen,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 entry.value.toString(),
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -419,15 +684,25 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
       childAspectRatio: 2.5,
       children: production.entries.map((entry) {
         return Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green[50],
-            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.accentTeal.withOpacity(0.1),
+                AppTheme.lightTeal.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.accentTeal.withOpacity(0.2),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,16 +710,17 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             children: [
               Text(
                 entry.key.replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.accentTeal,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 entry.value.toString(),
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -462,15 +738,25 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
       childAspectRatio: 2.5,
       children: adaptability.entries.map((entry) {
         return Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.orange[50],
-            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.warning.withOpacity(0.1),
+                AppTheme.warning.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.warning.withOpacity(0.2),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,16 +764,17 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             children: [
               Text(
                 entry.key.replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange,
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.warning,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 entry.value.toString(),
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -500,27 +787,61 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
 
   Widget _buildFeaturesList(List<dynamic>? features) {
     if (features == null || features.isEmpty) {
-      return const Text('No features available');
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey.shade600),
+            const SizedBox(width: 12),
+            Text(
+              'No features available',
+              style: AppTheme.bodyMedium.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Column(
       children: features.map((feature) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
+            color: AppTheme.success.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.success.withOpacity(0.2),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 16),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppTheme.success,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   feature.toString(),
-                  style: const TextStyle(fontSize: 14),
+                  style: AppTheme.bodyLarge.copyWith(
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
               ),
             ],

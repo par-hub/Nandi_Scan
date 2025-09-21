@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cnn/common/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserDrawer extends StatelessWidget {
@@ -29,65 +30,64 @@ class UserDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        color: Colors.white,
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             // User Profile Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF6750A4), Color(0xFF7B68EE)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppTheme.primaryGradient,
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 35,
-                      color: Color(0xFF6750A4),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: 34,
+                        color: AppTheme.primaryGreen,
+                      ),
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 16),
                   Text(
                     'John Doe', // Static user name
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.headingMedium.copyWith(color: Colors.white),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 6),
                   Text(
                     '+1234567890', // Static phone number
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // Menu Items
-            ListTile(
-              leading: const Icon(Icons.home, color: Color(0xFF6750A4)),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+            const SizedBox(height: 8),
+            _drawerItem(
+              icon: Icons.home,
+              title: 'Home',
+              onTap: () => Navigator.pop(context),
             ),
-
-            ListTile(
-              leading: const Icon(Icons.person, color: Color(0xFF6750A4)),
-              title: const Text('Profile'),
+            _drawerItem(
+              icon: Icons.person,
+              title: 'Profile',
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Navigate to profile page
               },
             ),
 
@@ -96,62 +96,99 @@ class UserDrawer extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cattles Owned',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6750A4),
-                    ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Icon(Icons.pets, color: Color(0xFF6750A4), size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        '5 Cattles', // Static cattle count
-                        style: TextStyle(fontSize: 14, color: Colors.black87),
-                      ),
-                    ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.pets, color: AppTheme.primaryGreen, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Cattles Owned', style: AppTheme.labelLarge),
+                        const SizedBox(height: 6),
+                        Text('5 Cattles', style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary)),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
 
-            ListTile(
-              leading: const Icon(Icons.settings, color: Color(0xFF6750A4)),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Navigate to settings page
-              },
+            _drawerItem(
+              icon: Icons.settings,
+              title: 'Settings',
+              onTap: () => Navigator.pop(context),
             ),
-
-            ListTile(
-              leading: const Icon(Icons.help, color: Color(0xFF6750A4)),
-              title: const Text('Help'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Navigate to help page
-              },
+            _drawerItem(
+              icon: Icons.help_outline,
+              title: 'Help',
+              onTap: () => Navigator.pop(context),
             ),
 
             const Divider(),
 
             // Logout
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout'),
+            _drawerItem(
+              icon: Icons.logout,
+              title: 'Logout',
+              iconColor: Colors.red,
+              titleColor: Colors.red,
               onTap: () => _logout(context),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+    Color? iconColor,
+    Color? titleColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: iconColor ?? AppTheme.textSecondary),
+        title: Text(
+          title,
+          style: AppTheme.bodyLarge.copyWith(
+            color: titleColor ?? AppTheme.textPrimary,
+          ),
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

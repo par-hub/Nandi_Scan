@@ -1,11 +1,12 @@
 import 'dart:ui';
 
 import 'package:cnn/common/button.dart';
+import 'package:cnn/common/app_theme.dart';
+import 'package:cnn/features/Auth/abc.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/features/Auth/widgets/auth_field.dart';
 import 'package:flutter/material.dart';
-import 'package:cnn/features/Auth/color_palet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -57,6 +58,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       // Clear the form
       emailController.clear();
       passwordController.clear();
+      // Navigate to Home (named route) and remove previous routes
+      if (mounted) {
+        Navigator.of(context).pushNamed(Home.routeName);
+      }
     } else {
       ScaffoldMessenger.of(
         context,
@@ -69,108 +74,155 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Scaffold(
       body: Stack(
         children: [
-          Container(color: ColorPalet.backgroundColorAuth),
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/cow1.png"),
-                fit: BoxFit.cover,
-                opacity: 0.3,
-              ),
+          // Themed gradient background
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
+            ),
+          ),
+          // Subtle background image
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.08,
+              child: Image.asset('assets/cow1.png', fit: BoxFit.cover),
             ),
           ),
           SingleChildScrollView(
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 20),
-                  alignment: Alignment.center,
-                  child: CircleAvatar(
-                    radius: 55,
-                    backgroundColor: ColorPalet.backgroundColorAuth,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage("assets/cow1.png"),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryGreen.withOpacity(0.25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.lock_open,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back',
+                                style: AppTheme.headingSmall.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Sign in to continue',
+                                style: AppTheme.bodyMedium.copyWith(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Log In",
-                  style: TextStyle(
-                    fontSize: 28,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Georgia',
+
+                  const SizedBox(height: 24),
+
+                  // Circular Avatar
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: AppTheme.accentGradient,
+                      ),
+                      child: const CircleAvatar(
+                        radius: 44,
+                        backgroundColor: Colors.white,
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundImage: AssetImage('assets/cow1.png'),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
+
+                  const SizedBox(height: 16),
+
+                  // Form card
+                  Container(
+                    decoration: AppTheme.cardDecoration,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AuthField(
                           hintText: "Enter your email",
                           controller: emailController,
                         ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: AuthField(
+                        const SizedBox(height: 12),
+                        AuthField(
                           hintText: "Password",
                           controller: passwordController,
                         ),
-                      ),
-                      Container(
-                        alignment: Alignment.centerRight,
-                        margin: const EdgeInsets.only(top: 5),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            "Forgot Password",
+                            style: AppTheme.labelMedium,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Button(
+                            onPressed: () => login(context),
+                            text: 'Login',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Not a user? ", style: AppTheme.bodyMedium),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, SignUp.routeName);
+                        },
                         child: Text(
-                          "Forgot Password",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 12,
+                          "Signup",
+                          style: AppTheme.labelLarge.copyWith(
+                            color: AppTheme.accentTeal,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Button(
-                          onPressed: () => login(context),
-                          text: 'Login',
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Not a user? ",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(context, SignUp.routeName);
-                            },
-                            child: const Text(
-                              "Signup",
-                              style: TextStyle(
-                                color: Colors.blueAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
-                ),
-
-                const SizedBox(height: 30),
-              ],
+                ],
+              ),
             ),
           ),
         ],

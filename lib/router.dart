@@ -1,7 +1,7 @@
-import 'package:cnn/features/Auth/abc.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
-import 'package:cnn/main.dart';
+import 'package:cnn/home.dart';
+import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:flutter/material.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
@@ -12,6 +12,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const SignUp());
     case Home.routeName:
       return MaterialPageRoute(builder: (context) => const Home());
+    case SpecificationScreen.routeName:
+      return MaterialPageRoute(
+          builder: (context) => const SpecificationScreen());
     default:
       return MaterialPageRoute(
         builder: (context) =>

@@ -11,20 +11,30 @@ class SpecRepository {
       );
 
   /// Fetch all specifications of a given breed
-  Future<Map<String, dynamic>> getBreedSpecifications(String breedName) async {
+  Future<Map<String, dynamic>> getBreedSpecifications(
+    String breedName, {
+    String? gender,
+  }) async {
     try {
       final normalizedBreed = breedName.toLowerCase().trim();
 
       /// Join Feautures with CowBuffalo table using foreign key relation
-      final response = await _supabase
+      var query = _supabase
           .from('Feautures')
           .select('*, cow_buffalo!inner(breed, gender, count)')
-          .ilike('cow_buffalo.breed', normalizedBreed)
-          .limit(1);
+          .ilike('cow_buffalo.breed', normalizedBreed);
+
+      if (gender != null && gender.isNotEmpty) {
+        query = query.eq('cow_buffalo.gender', gender);
+      }
+
+      final response = await query.limit(1);
 
       if (response.isEmpty) {
         // Changed from response == null
-        throw Exception('Breed "$breedName" not found in database');
+        throw Exception(
+          'Breed "$breedName" with gender "${gender ?? ''}" not found in database',
+        );
       }
 
       final data = response[0]; // Get the first element from the list
@@ -43,9 +53,9 @@ class SpecRepository {
           'ear_shape': data['ear_shape'] ?? 'Unknown', // Changed from response
           'forehead_shape':
               data['forehead_shape'] ?? 'Unknown', // Changed from response
-          'neck_type': data['neck_type'] ?? 'Unknown', // Changed from response
-          'body_shape':
-              data['body_shape'] ?? 'Unknown', // Changed from response
+          'fertility_age':
+              data['fertility_age'] ?? 'Unknown', // Changed from response
+          'purpose': data['purpose'] ?? 'Unknown', // Changed from response
           'tail_shape':
               data['tail_shape'] ?? 'Unknown', // Changed from response
           'udder': data['udder'] ?? 'Unknown', // Changed from response

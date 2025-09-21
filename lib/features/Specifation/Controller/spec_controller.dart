@@ -34,7 +34,10 @@ class SpecController {
   }
 
   // Fetch breed specifications
-  Future<void> fetchBreedSpecifications(String breedName) async {
+  Future<void> fetchBreedSpecifications(
+    String breedName, {
+    String? gender,
+  }) async {
     if (breedName.trim().isEmpty) {
       _error = 'Please enter a breed name';
       _breedData = null;
@@ -45,7 +48,10 @@ class SpecController {
       _isLoading = true;
       _error = null;
 
-      final data = await _repository.getBreedSpecifications(breedName);
+      final data = await _repository.getBreedSpecifications(
+        breedName,
+        gender: gender,
+      );
 
       _isLoading = false;
       _breedData = data;

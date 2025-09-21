@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cnn/features/Auth/color_palet.dart';
+import 'package:cnn/common/app_theme.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({super.key});
@@ -9,34 +9,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: kToolbarHeight,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF6750A4), // Purple for top 20%
-            Colors.white, // White for remaining 80%
-          ],
-          stops: [0.3, 0.2], // 20% purple, 80% white
-        ),
+        gradient: AppTheme.primaryGradient,
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(25),
-          bottomRight: Radius.circular(25),
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
       ),
       child: AppBar(
-        title: const Text(
+        title: Text(
           'Farmer App',
-          style: TextStyle(
-            color: Colors.black87, // Dark text for contrast on white background
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: AppTheme.headingSmall.copyWith(color: Colors.white),
         ),
-        backgroundColor:
-            Colors.transparent, // Make AppBar transparent to show gradient
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black87), // Dark icons
+        iconTheme: const IconThemeData(color: Colors.white),
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu), // Drawer icon
