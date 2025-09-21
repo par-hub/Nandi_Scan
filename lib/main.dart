@@ -10,11 +10,16 @@ import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/router.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Disable debug paint and overflow indicators
+  debugPaintSizeEnabled = false;
+  
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
@@ -35,7 +40,12 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: AppTheme.lightTheme,
       onGenerateRoute: (settings) => generateRoute(settings),
-      home: Home(),
+      home: LoginPage(),
+      builder: (context, child) {
+        // Ensure debug paint is disabled
+        debugPaintSizeEnabled = false;
+        return child!;
+      },
     );
   }
 }

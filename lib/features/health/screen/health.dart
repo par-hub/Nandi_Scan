@@ -2,6 +2,9 @@ import 'package:cnn/features/health/controller/health_controller.dart';
 import 'package:cnn/features/health/models/health_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../../common/widgets/image_picker_widget.dart';
 
 class Health extends ConsumerStatefulWidget {
   static const routeName = '/health';
@@ -19,12 +22,25 @@ class _HealthState extends ConsumerState<Health> {
   List<CommonDisease> _diseases = [];
   bool _isLoading = false;
   bool _showResults = false;
+  
+  // Image picker variables
+  File? _selectedImage;
+  XFile? _selectedImageWeb;
+  final GlobalKey<ImagePickerWidgetState> _imagePickerKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _initializeDropdowns();
     _loadCommonDiseases();
+  }
+
+  // Image selection callback
+  void _onImageSelected(File? file, XFile? webFile) {
+    setState(() {
+      _selectedImage = file;
+      _selectedImageWeb = webFile;
+    });
   }
 
   void _initializeDropdowns() {
@@ -307,31 +323,13 @@ class _HealthState extends ConsumerState<Health> {
                 padding: const EdgeInsets.all(30.0),
                 child: Column(
                   children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            "Add image",
-                            style: TextStyle(color: Colors.teal, fontSize: 16),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 5,
-                          right: 5,
-                          child: CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 18,
-                            child: Icon(
-                              Icons.add_circle,
-                              color: Colors.blue,
-                              size: 30,
-                            ),
-                          ),
-                        ),
-                      ],
+                    ImagePickerWidget(
+                      key: _imagePickerKey,
+                      onImageSelected: _onImageSelected,
+                      width: 120,
+                      height: 120,
+                      isCircular: true,
+                      placeholder: "Add image",
                     ),
                   ],
                 ),

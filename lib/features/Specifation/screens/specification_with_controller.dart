@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../Controller/spec_controller.dart';
 import '../Repository/specrepo.dart';
 import '../../../common/app_theme.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../../common/widgets/image_picker_widget.dart';
 
 class SpecificationScreen extends StatefulWidget {
   static const routeName = '/specification-screen';
@@ -15,6 +18,11 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   late final SpecController _controller;
   final TextEditingController _breedController = TextEditingController();
   String? _selectedGender; // New state variable for gender selection
+
+  // Image picker variables
+  File? _selectedImage;
+  XFile? _selectedImageWeb;
+  final GlobalKey<ImagePickerWidgetState> _imagePickerKey = GlobalKey();
 
   @override
   void initState() {
@@ -34,24 +42,43 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     setState(() {});
   }
 
+  // Image selection callback
+  void _onImageSelected(File? file, XFile? webFile) {
+    setState(() {
+      _selectedImage = file;
+      _selectedImageWeb = webFile;
+    });
+  }
+
   Future<void> _checkBreedSpecifications() async {
-    String? genderParam;
-    if (_selectedGender == 'male') {
-      genderParam = 'm';
-    } else if (_selectedGender == 'female') {
-      genderParam = 'f';
+    try {
+      String? genderParam;
+      if (_selectedGender == 'male') {
+        genderParam = 'm';
+      } else if (_selectedGender == 'female') {
+        genderParam = 'f';
+      }
+      await _controller.fetchBreedSpecifications(
+        _breedController.text,
+        gender: genderParam,
+      );
+      setState(() {});
+    } catch (e) {
+      // Handle any errors gracefully
+      print('Error fetching breed specifications: $e');
+      setState(() {});
     }
-    await _controller.fetchBreedSpecifications(
-      _breedController.text,
-      gender: genderParam,
-    );
-    setState(() {});
   }
 
   void _clearData() {
     _controller.clearData();
     _breedController.clear();
-    setState(() {});
+    _imagePickerKey.currentState?.clearImage();
+    setState(() {
+      _selectedGender = null;
+      _selectedImage = null;
+      _selectedImageWeb = null;
+    });
   }
 
   @override
@@ -83,174 +110,311 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                     bottom: Radius.circular(40),
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // Background pattern
-                    Positioned.fill(
-                      child: Container(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 100, 24, 40),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 24),
+                      Text(
+                        "Breed Specifications",
+                        style: AppTheme.headingLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(40),
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Comprehensive livestock breed analysis & insights",
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: Colors.white.withOpacity(0.9),
                           ),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.1),
-                              Colors.transparent,
-                            ],
-                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 100, 24, 40),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.pets,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            "Discover Breed Details",
-                            style: AppTheme.headingLarge.copyWith(
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Get comprehensive information about livestock breeds",
-                            style: AppTheme.bodyMedium.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
               // Input section with floating card
-              Transform.translate(
-                offset: const Offset(0, -30),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    decoration: AppTheme.cardDecoration,
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Search Breed", style: AppTheme.headingSmall),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _breedController,
-                          decoration: AppTheme.inputDecoration(
-                            hintText: "Enter breed name (e.g., Murrah)",
-                            prefixIcon: Icons.search,
-                          ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Container(
+                  margin: const EdgeInsets.only(top: 24),
+                  decoration: AppTheme.cardDecoration,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image picker section
+                      Center(
+                        child: ImagePickerWidget(
+                          key: _imagePickerKey,
+                          onImageSelected: _onImageSelected,
+                          width: 120,
+                          height: 120,
+                          placeholder: "Add cattle image",
                         ),
-                        const SizedBox(height: 20),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Modern gender selection
-                        Text("Select Gender", style: AppTheme.labelLarge),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildGenderOption(
-                                'male',
-                                'Male',
-                                Icons.male,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildGenderOption(
-                                'female',
-                                'Female',
-                                Icons.female,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Modern button
-                        SizedBox(
-                          width: double.infinity,
-                          child: Container(
+                      // Header with icon and description
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               gradient: AppTheme.primaryGradient,
                               borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryGreen.withOpacity(0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
+                            ),
+                            child: const Icon(
+                              Icons.search,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Breed Search",
+                                  style: AppTheme.headingSmall.copyWith(
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Enter breed details to get comprehensive specifications",
+                                  style: AppTheme.bodyMedium.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Breed input section
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Breed Name",
+                              style: AppTheme.labelLarge.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
                               ),
-                              onPressed: _controller.isLoading
-                                  ? null
-                                  : () => _checkBreedSpecifications(),
-                              child: _controller.isLoading
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _breedController,
+                              decoration:
+                                  AppTheme.inputDecoration(
+                                    hintText:
+                                        "Enter breed name (e.g., Murrah, Gir, Holstein)",
+                                  ).copyWith(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade300,
                                       ),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.search,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          "Check Specifications",
-                                          style: AppTheme.labelLarge.copyWith(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
                                     ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: AppTheme.primaryGreen,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Gender selection section
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.wc,
+                                  color: AppTheme.primaryGreen,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Gender Selection",
+                                  style: AppTheme.labelLarge.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Select gender for specific breed information",
+                              style: AppTheme.bodyMedium.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildGenderOption('male', 'Male'),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildGenderOption('female', 'Female'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Action buttons with enhanced design
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryGreen.withOpacity(
+                                      0.3,
+                                    ),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                  ),
+                                ),
+                                onPressed: _controller.isLoading
+                                    ? null
+                                    : () => _checkBreedSpecifications(),
+                                child: _controller.isLoading
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.search,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "Search Specifications",
+                                            style: AppTheme.labelLarge.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppTheme.primaryGreen,
+                                  width: 2,
+                                ),
+                              ),
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide.none,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                  ),
+                                ),
+                                onPressed: _clearData,
+                                child: Text(
+                                  "Clear",
+                                  style: AppTheme.labelMedium.copyWith(
+                                    color: AppTheme.primaryGreen,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -269,19 +433,13 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                         color: AppTheme.error.withOpacity(0.3),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.error_outline, color: AppTheme.error),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _controller.error!,
-                            style: AppTheme.bodyMedium.copyWith(
-                              color: AppTheme.error,
-                            ),
-                          ),
+                    child: Expanded(
+                      child: Text(
+                        _controller.error!,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.error,
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -299,7 +457,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     );
   }
 
-  Widget _buildGenderOption(String value, String label, IconData icon) {
+  Widget _buildGenderOption(String value, String label) {
     final isSelected = _selectedGender == value;
     return GestureDetector(
       onTap: () {
@@ -307,32 +465,35 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
           _selectedGender = value;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(16),
+          gradient: isSelected ? AppTheme.primaryGradient : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade300,
-            width: 1.5,
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryGreen.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
+        child: Center(
+          child: Text(
+            label,
+            style: AppTheme.labelLarge.copyWith(
               color: isSelected ? Colors.white : AppTheme.textSecondary,
-              size: 20,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTheme.labelLarge.copyWith(
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -355,18 +516,6 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.agriculture,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Farmer App',
@@ -488,25 +637,13 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.pets,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            data['name'] ?? 'Unknown Breed',
+                            (data['name']?.toString() ?? 'Unknown Breed'),
                             style: AppTheme.headingMedium.copyWith(
                               color: Colors.white,
                             ),
@@ -522,7 +659,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              data['type'] ?? 'Unknown',
+                              (data['type']?.toString() ?? 'Unknown'),
                               style: AppTheme.labelMedium.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -569,7 +706,8 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               const SizedBox(height: 24),
 
               // Origin
-              if (data['origin'] != null && data['origin'] != 'Unknown')
+              if (data['origin'] != null &&
+                  data['origin'].toString() != 'Unknown')
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -585,7 +723,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                         ),
                       ),
                       child: Text(
-                        data['origin'],
+                        (data['origin']?.toString() ?? 'Unknown'),
                         style: AppTheme.bodyLarge.copyWith(
                           color: AppTheme.primaryGreen,
                         ),
@@ -603,24 +741,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   Widget _buildSectionTitle(String title, [IconData? icon]) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppTheme.primaryGreen, size: 20),
-            ),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            title,
-            style: AppTheme.headingSmall.copyWith(color: AppTheme.textPrimary),
-          ),
-        ],
+      child: Text(
+        title,
+        style: AppTheme.headingSmall.copyWith(color: AppTheme.textPrimary),
       ),
     );
   }
@@ -663,7 +786,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                entry.value.toString(),
+                (entry.value?.toString() ?? 'N/A'),
                 style: AppTheme.bodyMedium.copyWith(
                   color: AppTheme.textPrimary,
                 ),
@@ -715,7 +838,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                entry.value.toString(),
+                (entry.value?.toString() ?? 'N/A'),
                 style: AppTheme.bodyMedium.copyWith(
                   color: AppTheme.textPrimary,
                 ),
@@ -767,7 +890,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                entry.value.toString(),
+                (entry.value?.toString() ?? 'N/A'),
                 style: AppTheme.bodyMedium.copyWith(
                   color: AppTheme.textPrimary,
                 ),
@@ -789,15 +912,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.grey.shade600),
-            const SizedBox(width: 12),
-            Text(
-              'No features available',
-              style: AppTheme.bodyMedium.copyWith(color: Colors.grey.shade600),
-            ),
-          ],
+        child: Text(
+          'No features available',
+          style: AppTheme.bodyMedium.copyWith(color: Colors.grey.shade600),
         ),
       );
     }
@@ -812,27 +929,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.success.withOpacity(0.2)),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppTheme.success,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 16),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  feature.toString(),
-                  style: AppTheme.bodyLarge.copyWith(
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-            ],
+          child: Text(
+            (feature?.toString() ?? 'N/A'),
+            style: AppTheme.bodyLarge.copyWith(color: AppTheme.textPrimary),
           ),
         );
       }).toList(),
