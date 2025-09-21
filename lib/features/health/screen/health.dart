@@ -22,7 +22,7 @@ class _HealthState extends ConsumerState<Health> {
   List<CommonDisease> _diseases = [];
   bool _isLoading = false;
   bool _showResults = false;
-  
+
   // Image picker variables
   File? _selectedImage;
   XFile? _selectedImageWeb;
@@ -223,52 +223,6 @@ class _HealthState extends ConsumerState<Health> {
     }
   }
 
-  Future<void> _testConnection() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final controller = ref.read(healthControllerProvider);
-      final result = await controller.testConnection();
-      _showConnectionDialog(result);
-    } catch (e) {
-      _showErrorSnackBar('Connection test failed: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _showConnectionDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          message.contains('SUCCESS')
-              ? 'Connection Success'
-              : 'Connection Failed',
-          style: TextStyle(
-            color: message.contains('SUCCESS') ? Colors.green : Colors.red,
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            message,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -424,52 +378,25 @@ class _HealthState extends ConsumerState<Health> {
             // Buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                onPressed: _isLoading ? null : _performHealthCheck,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Check Health",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
-                      onPressed: _isLoading ? null : _performHealthCheck,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              "Check Health",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 15,
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _testConnection,
-                    child: const Text(
-                      "Test DB",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
 
