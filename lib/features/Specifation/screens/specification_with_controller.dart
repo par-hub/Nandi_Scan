@@ -4,7 +4,7 @@ import '../Repository/specrepo.dart';
 import '../../../common/app_theme.dart';
 
 class SpecificationScreen extends StatefulWidget {
-  static const routeName = '/specification';
+  static const routeName = '/specification-screen';
   const SpecificationScreen({super.key});
 
   @override
@@ -69,9 +69,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SingleChildScrollView(
           child: Column(
             children: [
@@ -157,10 +155,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Search Breed",
-                          style: AppTheme.headingSmall,
-                        ),
+                        Text("Search Breed", style: AppTheme.headingSmall),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _breedController,
@@ -172,19 +167,24 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                         const SizedBox(height: 20),
 
                         // Modern gender selection
-                        Text(
-                          "Select Gender",
-                          style: AppTheme.labelLarge,
-                        ),
+                        Text("Select Gender", style: AppTheme.labelLarge),
                         const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
-                              child: _buildGenderOption('male', 'Male', Icons.male),
+                              child: _buildGenderOption(
+                                'male',
+                                'Male',
+                                Icons.male,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildGenderOption('female', 'Female', Icons.female),
+                              child: _buildGenderOption(
+                                'female',
+                                'Female',
+                                Icons.female,
+                              ),
                             ),
                           ],
                         ),
@@ -213,7 +213,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                               ),
                               onPressed: _controller.isLoading
                                   ? null
@@ -228,9 +230,13 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                                       ),
                                     )
                                   : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.search, color: Colors.white),
+                                        const Icon(
+                                          Icons.search,
+                                          color: Colors.white,
+                                        ),
                                         const SizedBox(width: 8),
                                         Text(
                                           "Check Specifications",
@@ -259,7 +265,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                      border: Border.all(
+                        color: AppTheme.error.withOpacity(0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -333,9 +341,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   Widget _buildDrawer() {
     return Drawer(
       child: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -345,9 +351,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                 gradient: AppTheme.primaryGradient,
               ),
               child: DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
+                decoration: const BoxDecoration(color: Colors.transparent),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -442,7 +446,9 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryGreen.withOpacity(0.1) : Colors.transparent,
+        color: isSelected
+            ? AppTheme.primaryGreen.withOpacity(0.1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
@@ -458,9 +464,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
           ),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -490,7 +494,11 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.pets, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.pets,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -604,19 +612,13 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                 color: AppTheme.primaryGreen.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: AppTheme.primaryGreen,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppTheme.primaryGreen, size: 20),
             ),
             const SizedBox(width: 12),
           ],
           Text(
             title,
-            style: AppTheme.headingSmall.copyWith(
-              color: AppTheme.textPrimary,
-            ),
+            style: AppTheme.headingSmall.copyWith(color: AppTheme.textPrimary),
           ),
         ],
       ),
@@ -646,9 +648,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ],
             ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.primaryGreen.withOpacity(0.2),
-            ),
+            border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,9 +700,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ],
             ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.accentTeal.withOpacity(0.2),
-            ),
+            border: Border.all(color: AppTheme.accentTeal.withOpacity(0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,9 +752,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
               ],
             ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.warning.withOpacity(0.2),
-            ),
+            border: Border.all(color: AppTheme.warning.withOpacity(0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,9 +795,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             const SizedBox(width: 12),
             Text(
               'No features available',
-              style: AppTheme.bodyMedium.copyWith(
-                color: Colors.grey.shade600,
-              ),
+              style: AppTheme.bodyMedium.copyWith(color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -816,9 +810,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
           decoration: BoxDecoration(
             color: AppTheme.success.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.success.withOpacity(0.2),
-            ),
+            border: Border.all(color: AppTheme.success.withOpacity(0.2)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -829,11 +821,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                   color: AppTheme.success,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 16,
-                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 16),
               ),
               const SizedBox(width: 12),
               Expanded(

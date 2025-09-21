@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class AuthField extends StatelessWidget {
   final TextEditingController? controller;
   final hintText;
-  AuthField({super.key, this.hintText, this.controller});
+  const AuthField({super.key, this.hintText, this.controller});
 
   @override
   Widget build(BuildContext context) {

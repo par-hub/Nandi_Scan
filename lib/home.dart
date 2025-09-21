@@ -2,6 +2,8 @@ import 'package:cnn/common/app_Bar.dart';
 import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/features/Auth/widgets/user_drawer.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
+import 'package:cnn/features/health/screen/health.dart';
+import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatelessWidget {
@@ -53,11 +55,21 @@ class Home extends StatelessWidget {
                           child: InkWell(
                             onTap: () {
                               final title = item['title'];
+                              if (title == 'Animal Registration') {
+                                Navigator.pushNamed(
+                                  context,
+                                  AnimalRegistrationScreen.routeName,
+                                );
+                                return;
+                              }
                               if (title == 'Check breed Specifications') {
                                 Navigator.pushNamed(
                                   context,
                                   SpecificationScreen.routeName,
                                 );
+                              }
+                              if (title == 'Health') {
+                                Navigator.pushNamed(context, Health.routeName);
                               }
                             },
                             child: Column(

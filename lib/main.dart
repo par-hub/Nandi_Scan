@@ -6,7 +6,6 @@ import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
-import 'package:cnn/home.dart';
 import 'package:cnn/router.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,7 +21,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  static var routeName;
+  static String? routeName;
 
   const MyApp({super.key});
 

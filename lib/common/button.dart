@@ -6,8 +6,12 @@ class Button extends StatefulWidget {
   final VoidCallback onPressed;
   final String text;
   final Color? color;
-  const Button({Key? key, required this.onPressed, required this.text, this.color})
-    : super(key: key);
+  const Button({
+    super.key,
+    required this.onPressed,
+    required this.text,
+    this.color,
+  });
 
   @override
   State<Button> createState() => _ButtonState();

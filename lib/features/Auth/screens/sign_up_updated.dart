@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cnn/common/button.dart';
 import 'package:cnn/common/app_theme.dart';
+import 'package:cnn/common/user_storage.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/home.dart';
@@ -42,7 +43,10 @@ class _SignUpState extends ConsumerState<SignUp> {
 
   Future<void> _pickAvatar() async {
     try {
-      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (picked != null) {
         setState(() {
           _avatarFile = File(picked.path);
@@ -50,7 +54,9 @@ class _SignUpState extends ConsumerState<SignUp> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to pick image')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to pick image')));
       }
     }
   }
@@ -71,6 +77,8 @@ class _SignUpState extends ConsumerState<SignUp> {
     final confirmPassword = confirmPasswordController.text;
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
+
+    print('🔄 Starting signup process...');
 
     // Basic validation
     if (name.isEmpty) {
@@ -138,11 +146,15 @@ class _SignUpState extends ConsumerState<SignUp> {
       return;
     }
 
+    print('✅ Validation passed, setting loading state...');
     setState(() => _isLoading = true);
 
     try {
+      print('🔄 Getting auth controller...');
       // Get the auth controller from the provider
       final authController = ref.read(authControllerProvider);
+
+      print('🔄 Calling authController.signUp...');
       final value = await authController.signUp(
         email,
         password,
@@ -151,12 +163,37 @@ class _SignUpState extends ConsumerState<SignUp> {
         phone,
       );
 
+      print('📧 Auth controller returned: $value');
+
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+
       if (value == null) {
+        print('✅ Signup successful, getting user ID...');
+        // Get the current user ID for display
+        final userId = await UserStorage.getCurrentUserId();
+        final filePath = UserStorage.getFilePath();
+
+        print('📱 User ID: $userId');
+        print('💾 File path: $filePath');
+
+        // Check if widget is still mounted before using context
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Sign up successful! Please check your email for confirmation if required.',
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('✅ Sign up successful!'),
+                const SizedBox(height: 4),
+                Text('📱 User ID: ${userId ?? 'N/A'}'),
+                const SizedBox(height: 4),
+                Text('💾 Saved to: ${filePath.split('\\').last}'),
+              ],
             ),
+            duration: const Duration(seconds: 5),
           ),
         );
         // Clear the form
@@ -173,12 +210,29 @@ class _SignUpState extends ConsumerState<SignUp> {
           );
         }
       } else {
+        print('❌ Signup failed: $value');
+        // Check if widget is still mounted before using context
+        if (!mounted) return;
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $value')));
       }
+    } catch (e, stackTrace) {
+      print('❌ Exception in signup: $e');
+      print('📚 Stack trace: $stackTrace');
+
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Signup failed: ${e.toString()}')));
     } finally {
-      setState(() => _isLoading = false);
+      print('🔄 Finishing signup, clearing loading state...');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -190,19 +244,14 @@ class _SignUpState extends ConsumerState<SignUp> {
           // Themed gradient background
           const Positioned.fill(
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: AppTheme.backgroundGradient,
-              ),
+              decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
             ),
           ),
           // Faint background image overlay
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
-              child: Image.asset(
-                'assets/cow1.png',
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset('assets/cow1.png', fit: BoxFit.cover),
             ),
           ),
           SingleChildScrollView(
@@ -233,17 +282,28 @@ class _SignUpState extends ConsumerState<SignUp> {
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.person_add, color: Colors.white),
+                          child: const Icon(
+                            Icons.person_add,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Create your account',
-                                  style: AppTheme.headingSmall.copyWith(color: Colors.white)),
-                              Text('Join the Farmer App',
-                                  style: AppTheme.bodyMedium.copyWith(color: Colors.white70)),
+                              Text(
+                                'Create your account',
+                                style: AppTheme.headingSmall.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Join the Farmer App',
+                                style: AppTheme.bodyMedium.copyWith(
+                                  color: Colors.white70,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -287,7 +347,11 @@ class _SignUpState extends ConsumerState<SignUp> {
                                     ),
                                   ],
                                 ),
-                                child: const Icon(Icons.edit, size: 14, color: AppTheme.primaryGreen),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: AppTheme.primaryGreen,
+                                ),
                               ),
                             ],
                           ),
@@ -356,9 +420,15 @@ class _SignUpState extends ConsumerState<SignUp> {
                                 hintText: 'Password',
                                 prefixIcon: Icons.lock,
                                 suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off,
-                                      color: AppTheme.textSecondary),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
                                 ),
                               ),
                             ),
@@ -371,9 +441,15 @@ class _SignUpState extends ConsumerState<SignUp> {
                                 hintText: 'Confirm password',
                                 prefixIcon: Icons.lock_outline,
                                 suffixIcon: IconButton(
-                                  icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off,
-                                      color: AppTheme.textSecondary),
-                                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                  icon: Icon(
+                                    _obscureConfirm
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscureConfirm = !_obscureConfirm,
+                                  ),
                                 ),
                               ),
                             ),
@@ -385,7 +461,9 @@ class _SignUpState extends ConsumerState<SignUp> {
                                 absorbing: _isLoading,
                                 child: Button(
                                   onPressed: () => signup(context),
-                                  text: _isLoading ? 'Signing Up...' : 'Sign Up',
+                                  text: _isLoading
+                                      ? 'Signing Up...'
+                                      : 'Sign Up',
                                 ),
                               ),
                             ),
@@ -409,7 +487,9 @@ class _SignUpState extends ConsumerState<SignUp> {
                         },
                         child: Text(
                           "Login",
-                          style: AppTheme.labelLarge.copyWith(color: AppTheme.accentTeal),
+                          style: AppTheme.labelLarge.copyWith(
+                            color: AppTheme.accentTeal,
+                          ),
                         ),
                       ),
                     ],
