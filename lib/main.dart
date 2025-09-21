@@ -1,7 +1,8 @@
 import 'package:cnn/common/supabase_config.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
-import 'package:cnn/features/Auth/screens/sign_up.dart';
-import 'package:cnn/features/registration/screen/health.dart';
+
+import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
+import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/home.dart';
 import 'package:cnn/router.dart';
@@ -31,8 +32,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(),
       // onGenerateRoute: (settings) => generateRoute(settings),
-      // home: SignUp(),
-      home: AnimalRegistrationScreen(),
+      home: CattleOwnedScreen(),
     );
   }
 }

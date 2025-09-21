@@ -10,6 +10,8 @@ class AuthRepo {
     String email,
     String password,
     String confirmPassword,
+    String name,
+    String phone,
   ) async {
     try {
       final response = await supabase.auth.signUp(
@@ -25,6 +27,11 @@ class AuthRepo {
         return "Signup failed. Please try again.";
       }
 
+      // Save additional user data to custom table
+      if (response.user != null) {
+        await _saveUserDetails(response.user!.id, name, phone, email);
+      }
+
       return null; // success
     } catch (e) {
       // Provide more specific error messages
@@ -37,6 +44,26 @@ class AuthRepo {
       } else {
         return "Signup failed: ${e.toString()}";
       }
+    }
+  }
+
+  Future<void> _saveUserDetails(
+    String userId,
+    String name,
+    String phone,
+    String email,
+  ) async {
+    try {
+      final response = await supabase.from('User_details').insert({
+        'user-id': userId,
+        'name': name,
+        'phone': phone,
+      });
+
+      print("User details inserted: $response");
+    } catch (e) {
+      print('Error saving user details: $e');
+      rethrow; // <-- important so you know it failed
     }
   }
 

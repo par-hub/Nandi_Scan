@@ -1,4 +1,5 @@
 import 'package:cnn/features/Auth/widgets/auth_field.dart';
+import 'package:cnn/features/Auth/widgets/user_drawer.dart';
 import 'package:flutter/material.dart';
 
 class AnimalRegistrationScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class _AnimalRegistrationScreenState extends State<AnimalRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(), // side drawer
+      drawer: UserDrawer(), // side drawer
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
