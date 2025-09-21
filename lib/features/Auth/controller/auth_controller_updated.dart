@@ -1,5 +1,5 @@
+import 'package:cnn/features/Auth/repository/auth_repo_updated.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../repository/auth_repo.dart';
 
 class AuthController {
   final AuthRepo _authRepo;
@@ -10,8 +10,16 @@ class AuthController {
     String email,
     String password,
     String confirmPassword,
+    String name,
+    String phone,
   ) async {
-    return await _authRepo.signUp(email, password, confirmPassword);
+    return await _authRepo.signUp(
+      email,
+      password,
+      confirmPassword,
+      name,
+      phone,
+    );
   }
 
   Future<String?> signIn(String email, String password) async {

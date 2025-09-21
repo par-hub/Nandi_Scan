@@ -1,6 +1,6 @@
 import 'package:cnn/features/Auth/abc.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
-import 'package:cnn/features/Auth/screens/sign_up.dart';
+import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/main.dart';
 import 'package:flutter/material.dart';
 

@@ -1,8 +1,8 @@
 import 'dart:ui';
 
 import 'package:cnn/common/button.dart';
-import 'package:cnn/features/Auth/controller/auth_controller.dart';
-import 'package:cnn/features/Auth/screens/sign_up.dart';
+import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
+import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/features/Auth/widgets/auth_field.dart';
 import 'package:flutter/material.dart';
 import 'package:cnn/features/Auth/color_palet.dart';
