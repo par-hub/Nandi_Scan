@@ -9,20 +9,81 @@ import 'package:cnn/features/Specifation/screens/specification_with_controller.d
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/features/health/screen/health.dart';
 
-class UserDrawer extends ConsumerWidget {
+class UserDrawer extends ConsumerStatefulWidget {
   const UserDrawer({super.key});
+
+  @override
+  ConsumerState<UserDrawer> createState() => _UserDrawerState();
+}
+
+class _UserDrawerState extends ConsumerState<UserDrawer> {
+  String _userName = 'Loading...';
+  String _userPhone = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final authController = ref.read(authControllerProvider);
+      final currentUserId = await authController.getCurrentUserId();
+
+      if (currentUserId == null) {
+        setState(() {
+          _userName = 'Guest User';
+          _userPhone = 'Not logged in';
+        });
+        return;
+      }
+
+      print('🔍 Loading user data for ID: $currentUserId');
+
+      // Fetch user details from Supabase User_details table
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('User_details')
+          .select('name, phone')
+          .eq('user-id', currentUserId)
+          .maybeSingle();
+
+      if (response != null) {
+        setState(() {
+          _userName = response['name']?.toString() ?? 'Unknown User';
+          // Convert phone (float8) to string for display
+          final phoneNumber = response['phone'];
+          _userPhone = phoneNumber?.toString() ?? 'No phone number';
+        });
+        print('✅ User data loaded: Name=${_userName}, Phone=${_userPhone}');
+      } else {
+        print(
+          '⚠️ No user details found in database for user ID: $currentUserId',
+        );
+        setState(() {
+          _userName = 'User Details Missing';
+          _userPhone = 'Please update profile';
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading user data: $e');
+      setState(() {
+        _userName = 'Error Loading';
+        _userPhone = 'Please try again';
+      });
+    }
+  }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     try {
       print('🚪 Starting logout process...');
-      
+
       // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       // Use our auth controller to sign out
@@ -36,18 +97,17 @@ class UserDrawer extends ConsumerWidget {
 
       // Navigate to login page and clear navigation stack
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          LoginPage.routeName,
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(LoginPage.routeName, (route) => false);
       }
     } catch (e) {
       print('❌ Error during logout: $e');
-      
+
       // Close loading dialog if it's still open
       if (context.mounted) {
         Navigator.of(context).pop();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error during logout: ${e.toString()}'),
@@ -59,12 +119,10 @@ class UserDrawer extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -95,12 +153,12 @@ class UserDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'John Doe', // Static user name
+                    _userName, // Dynamic user name from database
                     style: AppTheme.headingMedium.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '+1234567890', // Static phone number
+                    _userPhone, // Dynamic phone number from database
                     style: AppTheme.bodyMedium.copyWith(
                       color: Colors.white.withOpacity(0.9),
                     ),
@@ -141,7 +199,10 @@ class UserDrawer extends ConsumerWidget {
               title: 'Animal Registration',
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, AnimalRegistrationScreen.routeName);
+                Navigator.pushNamed(
+                  context,
+                  AnimalRegistrationScreen.routeName,
+                );
               },
             ),
             _drawerItem(
@@ -182,7 +243,11 @@ class UserDrawer extends ConsumerWidget {
                         color: AppTheme.primaryGreen.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.pets, color: AppTheme.primaryGreen, size: 20),
+                      child: const Icon(
+                        Icons.pets,
+                        color: AppTheme.primaryGreen,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -191,11 +256,19 @@ class UserDrawer extends ConsumerWidget {
                         children: [
                           Text('Cattles Owned', style: AppTheme.labelLarge),
                           const SizedBox(height: 6),
-                          Text('5 Cattles', style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary)),
+                          Text(
+                            '5 Cattles',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppTheme.textSecondary,
+                    ),
                   ],
                 ),
               ),
@@ -260,9 +333,7 @@ class UserDrawer extends ConsumerWidget {
           ),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
