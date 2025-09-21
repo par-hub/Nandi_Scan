@@ -4,9 +4,71 @@ import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class UserDrawer extends ConsumerWidget {
+class UserDrawer extends ConsumerStatefulWidget {
   const UserDrawer({super.key});
+
+  @override
+  ConsumerState<UserDrawer> createState() => _UserDrawerState();
+}
+
+class _UserDrawerState extends ConsumerState<UserDrawer> {
+  String _userName = 'Loading...';
+  String _userPhone = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final authController = ref.read(authControllerProvider);
+      final currentUserId = await authController.getCurrentUserId();
+      
+      if (currentUserId == null) {
+        setState(() {
+          _userName = 'Guest User';
+          _userPhone = 'Not logged in';
+        });
+        return;
+      }
+
+      print('🔍 Loading user data for ID: $currentUserId');
+      
+      // Fetch user details from Supabase User_details table
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('User_details')
+          .select('name, phone')
+          .eq('user-id', currentUserId)
+          .maybeSingle();
+
+      if (response != null) {
+        setState(() {
+          _userName = response['name']?.toString() ?? 'Unknown User';
+          // Convert phone (float8) to string for display
+          final phoneNumber = response['phone'];
+          _userPhone = phoneNumber?.toString() ?? 'No phone number';
+        });
+        print('✅ User data loaded: Name=${_userName}, Phone=${_userPhone}');
+      } else {
+        print('⚠️ No user details found in database for user ID: $currentUserId');
+        setState(() {
+          _userName = 'User Details Missing';
+          _userPhone = 'Please update profile';
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading user data: $e');
+      setState(() {
+        _userName = 'Error Loading';
+        _userPhone = 'Please try again';
+      });
+    }
+  }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     try {
@@ -57,7 +119,7 @@ class UserDrawer extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Drawer(
       child: Container(
         decoration: const BoxDecoration(
@@ -93,12 +155,12 @@ class UserDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'John Doe', // Static user name
+                    _userName, // Dynamic user name from database
                     style: AppTheme.headingMedium.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '+1234567890', // Static phone number
+                    _userPhone, // Dynamic phone number from database
                     style: AppTheme.bodyMedium.copyWith(
                       color: Colors.white.withOpacity(0.9),
                     ),
