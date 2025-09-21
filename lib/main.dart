@@ -1,7 +1,7 @@
 import 'package:cnn/common/supabase_config.dart';
 import 'package:cnn/common/app_theme.dart';
-import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/router.dart';
+import 'package:cnn/common/auth_gate.dart';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: AppTheme.lightTheme,
       onGenerateRoute: (settings) => generateRoute(settings),
-      home: LoginPage(),
+      home: const AuthGate(),
     );
   }
 }
