@@ -7,6 +7,8 @@ import 'package:cnn/features/Specifation/screens/specification_with_controller.d
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 import 'package:cnn/features/prediction/screens/breed_prediction_screen.dart';
+import 'package:cnn/features/profile/screens/profile_screen.dart';
+import 'package:cnn/features/settings/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
@@ -37,6 +39,10 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (context) => const BreedPredictionScreen(),
       );
+    case ProfileScreen.routeName:
+      return MaterialPageRoute(builder: (context) => const ProfileScreen());
+    case SettingsScreen.routeName:
+      return MaterialPageRoute(builder: (context) => const SettingsScreen());
     default:
       return MaterialPageRoute(
         builder: (context) =>

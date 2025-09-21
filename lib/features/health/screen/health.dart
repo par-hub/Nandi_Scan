@@ -1,8 +1,8 @@
 import 'package:cnn/features/health/controller/health_controller.dart';
 import 'package:cnn/features/health/models/health_model.dart';
-import 'package:cnn/common/user_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cnn/common/user_drawer.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
@@ -247,7 +247,7 @@ class _HealthState extends ConsumerState<Health> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const UserDrawer(), // Updated to use UserDrawer
+      drawer: const UserDrawer(), // unified side drawer
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

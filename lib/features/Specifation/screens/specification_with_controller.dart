@@ -5,6 +5,7 @@ import '../../../common/app_theme.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
+import 'package:cnn/common/user_drawer.dart';
 
 class SpecificationScreen extends StatefulWidget {
   static const routeName = '/specification-screen';
@@ -84,7 +85,7 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildDrawer(),
+      drawer: const UserDrawer(),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -495,125 +496,6 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            Container(
-              height: 200,
-              decoration: const BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-              ),
-              child: DrawerHeader(
-                decoration: const BoxDecoration(color: Colors.transparent),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    Text(
-                      'Farmer App',
-                      style: AppTheme.headingLarge.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      'Livestock Management',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildDrawerItem(
-              icon: Icons.home,
-              title: 'Home',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-            ),
-            _buildDrawerItem(
-              icon: Icons.pets,
-              title: 'Specifications',
-              isSelected: true,
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            _buildDrawerItem(
-              icon: Icons.app_registration,
-              title: 'Registration',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/registration');
-              },
-            ),
-            _buildDrawerItem(
-              icon: Icons.health_and_safety,
-              title: 'Health',
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(height: 32),
-            _buildDrawerItem(
-              icon: Icons.settings,
-              title: 'Settings',
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            _buildDrawerItem(
-              icon: Icons.help_outline,
-              title: 'Help & Support',
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isSelected = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppTheme.primaryGreen.withOpacity(0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected ? AppTheme.primaryGreen : AppTheme.textSecondary,
-        ),
-        title: Text(
-          title,
-          style: AppTheme.bodyLarge.copyWith(
-            color: isSelected ? AppTheme.primaryGreen : AppTheme.textPrimary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
