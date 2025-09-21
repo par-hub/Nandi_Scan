@@ -1,6 +1,7 @@
 import 'package:cnn/home.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
+import 'package:cnn/features/Auth/screens/splash_screen.dart';
 import 'package:cnn/features/health/screen/health.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
@@ -9,6 +10,8 @@ import 'package:flutter/material.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   switch (settings.name) {
+    case SplashScreen.routeName:
+      return MaterialPageRoute(builder: (context) => const SplashScreen());
     case LoginPage.routeName:
       return MaterialPageRoute(builder: (context) => const LoginPage());
     case SignUp.routeName:

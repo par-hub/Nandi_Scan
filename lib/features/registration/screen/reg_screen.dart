@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cnn/features/registration/controller/registration_controller.dart';
+import 'package:cnn/common/user_drawer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -337,7 +338,7 @@ class _AnimalRegistrationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(), // side drawer
+      drawer: const UserDrawer(), // Updated to use UserDrawer
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

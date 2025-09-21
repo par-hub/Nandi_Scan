@@ -1,5 +1,6 @@
 import 'package:cnn/features/health/controller/health_controller.dart';
 import 'package:cnn/features/health/models/health_model.dart';
+import 'package:cnn/common/user_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
@@ -246,7 +247,7 @@ class _HealthState extends ConsumerState<Health> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(), // side drawer
+      drawer: const UserDrawer(), // Updated to use UserDrawer
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

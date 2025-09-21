@@ -1,12 +1,6 @@
 import 'package:cnn/common/supabase_config.dart';
 import 'package:cnn/common/app_theme.dart';
-import 'package:cnn/features/Auth/screens/login_page.dart';
-import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
-import "package:cnn/features/health/screen/health.dart";
-import 'package:cnn/home.dart';
-import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
-import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
-import 'package:cnn/features/registration/screen/reg_screen.dart';
+import 'package:cnn/features/Auth/screens/splash_screen.dart';
 import 'package:cnn/router.dart';
 
 import 'package:flutter/material.dart';
@@ -37,10 +31,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Nandi Scan',
       theme: AppTheme.lightTheme,
       onGenerateRoute: (settings) => generateRoute(settings),
-      home: LoginPage(),
+      home: const SplashScreen(), // Start with splash screen instead of login
       builder: (context, child) {
         // Ensure debug paint is disabled
         debugPaintSizeEnabled = false;
