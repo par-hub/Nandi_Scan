@@ -4,7 +4,7 @@ class CattleRegistrationModel {
   final double height;
   final String color;
   final double weight;
-  final int? userId;  // Changed from String? to int?
+  final String? userId;  // Changed from int? to String? for UUID
   final int? breedId;
 
   CattleRegistrationModel({
@@ -24,7 +24,7 @@ class CattleRegistrationModel {
       'height': height,
       'color': color,
       'weight': weight,
-      'user_id': userId,
+      'user-id': userId,
       'breed_id': breedId,
     };
   }
@@ -36,7 +36,7 @@ class CattleRegistrationModel {
       height: (json['height'] ?? 0.0).toDouble(),
       color: json['color'] ?? '',
       weight: (json['weight'] ?? 0.0).toDouble(),
-      userId: json['user_id'] != null ? (json['user_id'] as num).toInt() : null,  // Handle int conversion
+      userId: json['user-id'],  // UUID is a string, no conversion needed
       breedId: json['breed_id'],
     );
   }

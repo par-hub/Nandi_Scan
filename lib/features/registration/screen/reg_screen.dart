@@ -30,12 +30,9 @@ class _AnimalRegistrationScreenState
   @override
   void initState() {
     super.initState();
-    print('Initializing registration screen...'); // Debug print
     // Initialize dropdown data
     _initializeDropdowns();
     _loadCurrentUser();
-    print('Breeds loaded: ${_availableBreeds.length}'); // Debug print
-    print('Genders loaded: ${_availableGenders.length}'); // Debug print
   }
 
   void _loadCurrentUser() {
@@ -45,15 +42,11 @@ class _AnimalRegistrationScreenState
         _currentUserEmail = user.email;
         _currentUserId = user.id;
       });
-      print('Current user loaded: ${user.email} (${user.id})');
-    } else {
-      print('No user currently logged in');
     }
   }
 
   void _loadGendersForBreed(String breed) {
     // Since genders are always available, just reset the selection
-    print('Breed selected: $breed, resetting gender selection'); // Debug print
     setState(() {
       _selectedGender = null; // Reset gender when breed changes
     });
@@ -222,123 +215,21 @@ class _AnimalRegistrationScreenState
   }
 
   void _showErrorSnackBar(String message) {
-    // Print to console for debugging
-    print('ERROR MESSAGE: $message');
-
-    // Show in dialog for better copy-ability
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.error, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Error'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            message,
-            style: const TextStyle(fontFamily: 'monospace'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Copy to clipboard
-              // Clipboard.setData(ClipboardData(text: message));
-              Navigator.pop(context);
-            },
-            child: const Text('Copy & Close'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-
-    // Also show snackbar for quick reference
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message.split('\n').first,
-        ), // Show only first line in snackbar
+        content: Text(message),
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Details',
-          textColor: Colors.white,
-          onPressed: () {
-            // Show dialog again if dismissed
-            _showErrorDialog(message);
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.error, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Error Details'),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              message,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+        duration: const Duration(seconds: 4),
       ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
-    // Print to console for debugging
-    print('SUCCESS MESSAGE: $message');
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 4),
-      ),
-    );
-
-    // Also show success dialog with details
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Success'),
-          ],
-        ),
-        content: SelectableText(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }
@@ -525,7 +416,6 @@ class _AnimalRegistrationScreenState
                   onChanged: _availableBreeds.isEmpty
                       ? null
                       : (value) {
-                          print('Selected breed: $value'); // Debug print
                           setState(() {
                             _selectedBreed = value;
                           });
@@ -541,16 +431,6 @@ class _AnimalRegistrationScreenState
                   },
                 ),
               ),
-
-              // Debug info
-              if (_availableBreeds.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'Available breeds: ${_availableBreeds.length}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
 
               // Gender Dropdown
               Padding(
@@ -575,7 +455,6 @@ class _AnimalRegistrationScreenState
                     );
                   }).toList(),
                   onChanged: (value) {
-                    print('Selected gender: $value'); // Debug print
                     setState(() {
                       _selectedGender = value;
                     });
@@ -588,16 +467,6 @@ class _AnimalRegistrationScreenState
                   },
                 ),
               ),
-
-              // Debug info for genders
-              if (_availableGenders.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'Available genders: ${_availableGenders.length} (${_availableGenders.join(", ")})',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
 
               // Height Field
               Padding(
@@ -686,34 +555,6 @@ class _AnimalRegistrationScreenState
 
               const SizedBox(height: 20),
 
-              // Test Connection Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 12,
-                  ),
-                ),
-                onPressed: () async {
-                  final controller = ref.read(registrationControllerProvider);
-                  final result = await controller.testConnection();
-                  _showErrorSnackBar('Connection Test: $result');
-                },
-                child: const Text(
-                  "Test Database Connection",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
               // Register Button
               _isLoading
                   ? const CircularProgressIndicator()
@@ -745,68 +586,6 @@ class _AnimalRegistrationScreenState
                     ),
 
               const SizedBox(height: 20),
-
-              // Debug Panel
-              Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey.shade50,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '🔧 Debug Information',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SelectableText(
-                      'Selected Breed: ${_selectedBreed ?? "None"}',
-                    ),
-                    SelectableText(
-                      'Selected Gender: ${_selectedGender ?? "None"}',
-                    ),
-                    SelectableText(
-                      'Height: ${_heightController.text.isEmpty ? "Empty" : "${_heightController.text} cm"}',
-                    ),
-                    SelectableText(
-                      'Color: ${_colorController.text.isEmpty ? "Empty" : _colorController.text}',
-                    ),
-                    SelectableText(
-                      'Weight: ${_weightController.text.isEmpty ? "Empty" : "${_weightController.text} kg"}',
-                    ),
-                    const SizedBox(height: 8),
-                    SelectableText(
-                      'Available breeds: ${_availableBreeds.length}',
-                    ),
-                    SelectableText(
-                      'Available genders: ${_availableGenders.length}',
-                    ),
-                    const SizedBox(height: 8),
-                    SelectableText(
-                      'Current User Email: ${_currentUserEmail ?? "Not logged in"}',
-                    ),
-                    SelectableText(
-                      'Current User ID: ${_currentUserId ?? "None"}',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '💡 All error messages are now copy-able via dialogs',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),

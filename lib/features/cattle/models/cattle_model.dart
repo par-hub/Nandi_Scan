@@ -25,7 +25,7 @@ class CattleModel {
       height: (json['height'] ?? 0.0).toDouble(),
       color: json['color'] ?? '',
       weight: (json['weight'] ?? 0.0).toDouble(),
-      userId: json['user_id'] ?? '',
+      userId: json['user-id'] ?? '',
       gender: json['gender'] ?? '',
       breedId: json['breed_id'],
       breedName: json['cow_buffalo']?['breed'] ?? 'Unknown',
@@ -38,7 +38,7 @@ class CattleModel {
       'height': height,
       'color': color,
       'weight': weight,
-      'user_id': userId,
+      'user-id': userId,
       'gender': gender,
       'breed_id': breedId,
     };

@@ -27,7 +27,7 @@ class CattleRepo {
               breed
             )
           ''')
-          .eq('user_id', userId)
+          .eq('user-id', userId)
           .order('specified_id', ascending: true);
 
       print('Database response: $response');
@@ -55,7 +55,7 @@ class CattleRepo {
       final response = await supabase
           .from('user_defined_features')
           .select('specified_id')
-          .eq('user_id', userId);
+          .eq('user-id', userId);
 
       return (response as List).length;
     } catch (e) {
@@ -78,7 +78,7 @@ class CattleRepo {
           .from('user_defined_features')
           .delete()
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);
+          .eq('user-id', userId);
 
       // Update User_details cattle count
       await _decrementUserCattleCount(userId);
@@ -113,7 +113,7 @@ class CattleRepo {
             'gender': gender,
           })
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);
+          .eq('user-id', userId);
 
       return null; // Success
     } catch (e) {
@@ -126,8 +126,8 @@ class CattleRepo {
     try {
       final existingUser = await supabase
           .from('User_details')
-          .select('user_id, cattles_owned')
-          .eq('user_id', userId)
+          .select('user-id, cattles_owned')
+          .eq('user-id', userId)
           .maybeSingle();
 
       if (existingUser != null) {
@@ -136,7 +136,7 @@ class CattleRepo {
         await supabase
             .from('User_details')
             .update({'cattles_owned': newCount})
-            .eq('user_id', userId);
+            .eq('user-id', userId);
         print('Decremented cattles_owned for user $userId: $newCount');
       } else {
         print('User $userId not found in User_details table when trying to decrement');

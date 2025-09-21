@@ -42,6 +42,44 @@ class RegistrationRepo {
           
       print('Step 3 successful! user_defined_features table exists with ${userFeaturesTest.length} records');
       
+      // Step 4: Test User_details table access
+      print('Step 4: Testing User_details table...');
+      final userDetailsTest = await supabase
+          .from('User_details')
+          .select('user-id')
+          .limit(1);
+          
+      print('Step 4 successful! User_details table exists with ${userDetailsTest.length} records');
+      
+      // Step 5: Test INSERT permissions
+      print('Step 5: Testing INSERT permissions...');
+      try {
+        // Try a test insert (we'll delete it immediately)
+        final testInsert = await supabase
+            .from('user_defined_features')
+            .insert({
+              'height': 999.0,
+              'color': 'TEST_COLOR',
+              'weight': 999.0,
+              'user-id': 'test-uuid-for-permission-check',
+              'breed_id': 1,
+              'gender': 'f'
+            })
+            .select();
+        print('Test insert successful: $testInsert');
+        
+        // Clean up the test record
+        if (testInsert.isNotEmpty) {
+          await supabase
+              .from('user_defined_features')
+              .delete()
+              .eq('user-id', 'test-uuid-for-permission-check');
+          print('Test record cleaned up');
+        }
+      } catch (e) {
+        print('INSERT permission test failed: $e');
+      }
+      
       return """
 ✅ CONNECTION SUCCESS
 
@@ -169,36 +207,70 @@ Copy this entire message for debugging.
       final breedInfo = await getBreedInfo(cattle.breed, cattle.gender);
       print('Breed info: $breedInfo'); // Debug
       
+      // Check current record count before insertion
+      final currentRecordCount = await supabase
+          .from('user_defined_features')
+          .select('specified_id')
+          .eq('user-id', userId);
+      print('Current user cattle count before insertion: ${currentRecordCount.length}');
+      
       // Create entry in user_defined_features table
       userDefinedFeatures = {
         'height': cattle.height,
         'color': cattle.color,
         'weight': cattle.weight,
-        'user_id': userId,
+        'user-id': userId,
         'breed_id': breedInfo?.id, // This can be null if table doesn't exist
         'gender': cattle.gender,
       };
 
       print('Inserting data: $userDefinedFeatures'); // Debug
 
-      await supabase
+      final insertResult = await supabase
           .from('user_defined_features')
-          .insert(userDefinedFeatures);
+          .insert(userDefinedFeatures)
+          .select(); // Add select to get the inserted data
 
       print('Data inserted successfully'); // Debug
+      print('Insert result: $insertResult'); // Verify what was actually inserted
+
+      // Verify the data was actually saved by querying it back
+      final verificationQuery = await supabase
+          .from('user_defined_features')
+          .select('*')
+          .eq('user-id', userId)
+          .order('specified_id', ascending: false)
+          .limit(1);
+      print('Verification query result: $verificationQuery');
 
       // Update the count in cow_buffalo table if breed info exists
       if (breedInfo != null) {
-        await supabase
+        print('Updating breed count from ${breedInfo.count} to ${breedInfo.count + 1} for breed ID ${breedInfo.id}');
+        final updateResult = await supabase
             .from('cow_buffalo')
             .update({'count': breedInfo.count + 1})
-            .eq('id', breedInfo.id);
+            .eq('id', breedInfo.id)
+            .select(); // Add select to verify update
         print('Count updated for breed'); // Debug
+        print('Breed update result: $updateResult');
       }
 
       // Increment cattles_owned in User_details table
       await _incrementUserCattleCount(userId);
       print('User cattle count incremented'); // Debug
+
+      // Final verification - check if the total count actually increased
+      final finalRecordCount = await supabase
+          .from('user_defined_features')
+          .select('specified_id')
+          .eq('user-id', userId);
+      print('Final user cattle count after all operations: ${finalRecordCount.length}');
+      
+      // Also verify the breed count was updated
+      if (breedInfo != null) {
+        final updatedBreedInfo = await getBreedInfo(cattle.breed, cattle.gender);
+        print('Updated breed count verification: ${updatedBreedInfo?.count ?? "NOT FOUND"}');
+      }
 
       return null; // Success
     } catch (e) {
@@ -271,7 +343,7 @@ Copy this entire message for debugging.
               breed
             )
           ''')
-          .eq('user_id', userId);  // Use UUID string
+          .eq('user-id', userId);  // Use UUID string
 
       return (response as List).map((item) {
         return CattleRegistrationModel(
@@ -280,7 +352,7 @@ Copy this entire message for debugging.
           height: (item['height'] ?? 0.0).toDouble(),
           color: item['color'] ?? '',
           weight: (item['weight'] ?? 0.0).toDouble(),
-          userId: item['user_id'],
+          userId: item['user-id'],
           breedId: item['breed_id'],
         );
       }).toList();
@@ -310,7 +382,7 @@ Copy this entire message for debugging.
             'gender': cattle.gender,
           })
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);  // Use UUID string
+          .eq('user-id', userId);  // Use UUID string
 
       return null; // Success
     } catch (e) {
@@ -333,7 +405,7 @@ Copy this entire message for debugging.
           .from('user_defined_features')
           .delete()
           .eq('specified_id', specifiedId)
-          .eq('user_id', userId);  // Use UUID string
+          .eq('user-id', userId);  // Use UUID string
 
       // Decrement cattles_owned in User_details table
       await _decrementUserCattleCount(userId);
@@ -351,28 +423,40 @@ Copy this entire message for debugging.
       // First, check if user exists in User_details table
       final existingUser = await supabase
           .from('User_details')
-          .select('user_id, cattles_owned')
-          .eq('user_id', userId)
+          .select('user-id, cattles_owned')
+          .eq('user-id', userId)
           .maybeSingle();
 
       if (existingUser != null) {
         // User exists, increment cattles_owned
         final currentCount = existingUser['cattles_owned'] ?? 0;
-        await supabase
+        final updateResult = await supabase
             .from('User_details')
             .update({'cattles_owned': currentCount + 1})
-            .eq('user_id', userId);
+            .eq('user-id', userId)
+            .select(); // Add select to verify update
         print('Incremented cattles_owned for user $userId: ${currentCount + 1}');
+        print('User details update result: $updateResult');
+        
+        // Verify the update worked
+        final verifyUserUpdate = await supabase
+            .from('User_details')
+            .select('cattles_owned')
+            .eq('user-id', userId)
+            .single();
+        print('Verified user cattles_owned after update: ${verifyUserUpdate['cattles_owned']}');
       } else {
         // User doesn't exist, create new entry with cattles_owned = 1
-        await supabase
+        final insertResult = await supabase
             .from('User_details')
             .insert({
-              'user_id': userId,
+              'user-id': userId,
               'cattles_owned': 1,
               // Add other default values if needed based on your table schema
-            });
-        print('Created new user entry with user_id $userId and cattles_owned = 1');
+            })
+            .select(); // Add select to verify insert
+        print('Created new user entry with user-id $userId and cattles_owned = 1');
+        print('User creation result: $insertResult');
       }
     } catch (e) {
       print('Error updating User_details cattles_owned: $e');
@@ -386,8 +470,8 @@ Copy this entire message for debugging.
       // Check if user exists in User_details table
       final existingUser = await supabase
           .from('User_details')
-          .select('user_id, cattles_owned')
-          .eq('user_id', userId)
+          .select('user-id, cattles_owned')
+          .eq('user-id', userId)
           .maybeSingle();
 
       if (existingUser != null) {
@@ -397,7 +481,7 @@ Copy this entire message for debugging.
         await supabase
             .from('User_details')
             .update({'cattles_owned': newCount})
-            .eq('user_id', userId);
+            .eq('user-id', userId);
         print('Decremented cattles_owned for user $userId: $newCount');
       } else {
         print('User $userId not found in User_details table when trying to decrement');
