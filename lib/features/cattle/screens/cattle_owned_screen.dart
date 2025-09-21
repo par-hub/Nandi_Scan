@@ -5,6 +5,7 @@ import '../controller/cattle_controller.dart';
 import '../models/cattle_model.dart';
 
 class CattleOwnedScreen extends ConsumerStatefulWidget {
+  static const routeName = '/cattle-owned';
   const CattleOwnedScreen({super.key});
 
   @override

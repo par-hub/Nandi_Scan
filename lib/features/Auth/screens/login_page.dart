@@ -1,6 +1,6 @@
 import 'package:cnn/common/button.dart';
 import 'package:cnn/common/app_theme.dart';
-import 'package:cnn/features/Auth/abc.dart';
+import 'package:cnn/home.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/features/Auth/widgets/auth_field.dart';
