@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cnn/services/api_service.dart';
 
 class AnimalRegistrationScreen extends ConsumerStatefulWidget {
   static const routeName = '/registration';
@@ -23,11 +24,11 @@ class _AnimalRegistrationScreenState
   final _heightController = TextEditingController();
   final _colorController = TextEditingController();
   final _weightController = TextEditingController();
+  final _breedController = TextEditingController(); // Add breed text controller
 
-  String? _selectedBreed;
   String? _selectedGender;
   bool _isLoading = false;
-  List<String> _availableBreeds = [];
+  bool _isPredictingBreed = false; // Track AI prediction status
   List<String> _availableGenders = [];
   String? _currentUserEmail;
   String? _currentUserId;
@@ -43,6 +44,15 @@ class _AnimalRegistrationScreenState
     // Initialize dropdown data
     _initializeDropdowns();
     _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    _heightController.dispose();
+    _colorController.dispose();
+    _weightController.dispose();
+    _breedController.dispose();
+    super.dispose();
   }
 
   void _loadCurrentUser() {
@@ -67,8 +77,8 @@ class _AnimalRegistrationScreenState
       return;
     }
 
-    if (_selectedBreed == null) {
-      _showErrorSnackBar('Please select a breed');
+    if (_breedController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter a breed');
       return;
     }
 
@@ -88,7 +98,7 @@ class _AnimalRegistrationScreenState
       // Use the registration controller to upload to Supabase
       final controller = ref.read(registrationControllerProvider);
       final error = await controller.registerCattle(
-        breed: _selectedBreed!,
+        breed: _breedController.text.trim(),
         gender: genderCode,
         height: double.parse(_heightController.text),
         color: _colorController.text.trim(),
@@ -114,8 +124,8 @@ class _AnimalRegistrationScreenState
     _heightController.clear();
     _colorController.clear();
     _weightController.clear();
+    _breedController.clear(); // Clear breed text field
     setState(() {
-      _selectedBreed = null;
       _selectedGender = null;
       _selectedImage = null; // Clear the selected image
       _selectedImageWeb = null; // Clear web image
@@ -125,104 +135,7 @@ class _AnimalRegistrationScreenState
   }
 
   void _initializeDropdowns() {
-    // Reinitialize both dropdown lists to ensure they're always available
-    _availableBreeds = [
-      "Toda",
-      "NILI RAVI",
-      "Surti",
-      "Kankrej",
-      "Pandharpuri",
-      "Gir",
-      "Jaffarabadi",
-      "Kenkatha",
-      "Banni",
-      "NAGPURI",
-      "Chilika",
-      "Khillar",
-      "Kalahandi",
-      "Hallikar",
-      "Parlakhemundi",
-      "Kherigarh",
-      "Assam Hill",
-      "JAFFARABADI",
-      "Manipur Hill",
-      "Kishan Garh",
-      "Tripura Hill",
-      "Hariana",
-      "Mizoram Hill",
-      "Kuntal",
-      "Arunachal Hill",
-      "GODAVARI",
-      "Sikkim Hill",
-      "Ladakhi",
-      "Jharkhand Hill",
-      "Himachali Pahari",
-      "Chhota Nagpuri",
-      "Lakhimi",
-      "Tibetan Yak",
-      "murrah",
-      "Andaman Hill",
-      "Malvi",
-      "Nicobari",
-      "Kangayam",
-      "Lakshadweep",
-      "Mewati",
-      "Kashmir Hill",
-      "TODA",
-      "Lahaul-Spiti",
-      "Motu",
-      "Kumaon Hill",
-      "Amritmahal",
-      "Garhwal Hill",
-      "Mundari",
-      "Brahmagiri Hill",
-      "SURTI",
-      "Western Ghats Hill",
-      "Nagori",
-      "Eastern Ghats Hill",
-      "Bachaur",
-      "Satpura Hill",
-      "Nimari",
-      "Vindhya Hill",
-      "PANDHARPURI",
-      "Maikal Hill",
-      "Ponwar",
-      "Nilgiri Hill",
-      "Bargur",
-      "Palani Hill",
-      "Punganur",
-      "Shevaroy Hill",
-      "BHADAWARI",
-      "Anamalai Hill",
-      "Rathi",
-      "Cardamom Hill",
-      "Dangi",
-      "Agasthyamalai Hill",
-      "Red Kandhari",
-      "Pachamalai Hill",
-      "Gaolao",
-      "Jawadhu Hill",
-      "Siri",
-      "Kalrayan Hill",
-      "Deoni",
-      "Sirumalai Hill",
-      "Tharparkar",
-      "Sankagiri Hill",
-      "MEHSANA",
-      "Kolli Hill",
-      "Umblachery",
-      "Pudukkottai Hill",
-      "Dhanni",
-      "Sivaganga Hill",
-      "Vechur",
-      "Dindigul Hill",
-      "Ghumusari",
-      "Theni Hill",
-      "Yak",
-      "Virudhunagar Hill",
-      "Gangatiri",
-      "Tenkasi Hill",
-    ];
+    // Initialize gender dropdown only (breed is now a text field)
     _availableGenders = ['Male', 'Female'];
   }
 
@@ -244,6 +157,86 @@ class _AnimalRegistrationScreenState
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  // AI Breed Prediction Method
+  Future<void> _predictBreedFromImage(XFile? imageFile) async {
+    if (!mounted || imageFile == null) {
+      print('❌ Prediction cancelled - mounted: $mounted, imageFile: $imageFile');
+      return;
+    }
+    
+    setState(() {
+      _isPredictingBreed = true;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      
+      print('🚀 Starting AI prediction...');
+      print('📁 Image file name: ${imageFile.name}');
+      print('📁 Image file size: ${await imageFile.length()} bytes');
+      
+      // First test the health endpoint
+      print('🏥 Testing API health...');
+      final healthResult = await apiService.healthCheck();
+      print('🏥 Health check - Status: ${healthResult.status}, Model Loaded: ${healthResult.modelLoaded}');
+      
+      if (!healthResult.isHealthy) {
+        print('❌ API not healthy, cannot proceed with prediction');
+        _showErrorSnackBar('AI service is not available. Please try again later.');
+        return;
+      }
+      
+      // Use the new web-compatible method
+      print('📡 Sending prediction request to API...');
+      final result = await apiService.predictBreedFromXFile(imageFile);
+      
+      print('📊 AI Response received:');
+      print('📊   Status: ${result.status}');
+      print('📊   Success: ${result.isSuccess}');
+      print('📊   Breed: "${result.prediction.breed}"');
+      print('📊   Confidence: ${result.prediction.confidence}%');
+      print('📊   Error: ${result.error}');
+      print('📊   Image Info: ${result.imageInfo.filename} (${result.imageInfo.sizeBytes} bytes)');
+      print('📊   Model: ${result.modelInfo.architecture} (${result.modelInfo.totalBreeds} breeds)');
+      
+      if (result.isSuccess && result.prediction.breed.isNotEmpty) {
+        // Get the top prediction
+        final topPrediction = result.prediction;
+        
+        print('✅ AI prediction successful: "${topPrediction.breed}" with ${topPrediction.confidence}% confidence');
+        
+        // Directly set the breed text field with AI prediction
+        setState(() {
+          _breedController.text = topPrediction.breed;
+        });
+        
+        // Load genders for the predicted breed
+        _loadGendersForBreed(topPrediction.breed);
+        
+        _showSuccessSnackBar(
+          '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)'
+        );
+      } else {
+        print('❌ AI prediction failed:');
+        print('   Status: ${result.status}');
+        print('   Success check: ${result.isSuccess}');
+        print('   Breed empty check: ${result.prediction.breed.isEmpty}');
+        print('   Actual breed value: "${result.prediction.breed}"');
+        _showErrorSnackBar('Could not predict breed from image. Please enter manually.');
+      }
+    } catch (e, stackTrace) {
+      print('💥 Exception in breed prediction: $e');
+      print('💥 Stack trace: $stackTrace');
+      _showErrorSnackBar('AI prediction failed. Please select breed manually.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredictingBreed = false;
+        });
+      }
+    }
   }
 
   // Image picker method
@@ -277,6 +270,9 @@ class _AnimalRegistrationScreenState
                           _selectedImageWeb = null;
                         }
                       });
+                      
+                      // Auto-predict breed from the selected image
+                      _predictBreedFromImage(pickedFile);
                     }
                   },
                 ),
@@ -301,6 +297,9 @@ class _AnimalRegistrationScreenState
                           _selectedImageWeb = null;
                         }
                       });
+                      
+                      // Auto-predict breed from the selected image
+                      _predictBreedFromImage(pickedFile);
                     }
                   },
                 ),
@@ -325,14 +324,6 @@ class _AnimalRegistrationScreenState
     } catch (e) {
       _showErrorSnackBar('Failed to pick image: ${e.toString()}');
     }
-  }
-
-  @override
-  void dispose() {
-    _heightController.dispose();
-    _colorController.dispose();
-    _weightController.dispose();
-    super.dispose();
   }
 
   @override
@@ -531,43 +522,41 @@ class _AnimalRegistrationScreenState
                   ),
                 ),
 
-              // Breed Dropdown
+              // Breed Text Field
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 10,
                 ),
-                child: DropdownButtonFormField<String>(
-                  value: _selectedBreed,
+                child: TextFormField(
+                  controller: _breedController,
                   decoration: InputDecoration(
-                    hintText: 'Select Breed',
+                    hintText: _isPredictingBreed 
+                        ? '🤖 AI is predicting...' 
+                        : 'Enter Breed (AI prediction available)',
+                    labelText: 'Breed',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: _isPredictingBreed 
+                        ? Colors.blue[50] 
+                        : Colors.grey[100],
+                    suffixIcon: _isPredictingBreed 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const Icon(Icons.pets),
                   ),
-                  items: _availableBreeds.isEmpty
-                      ? null
-                      : _availableBreeds.map((breed) {
-                          return DropdownMenuItem<String>(
-                            value: breed,
-                            child: Text(breed),
-                          );
-                        }).toList(),
-                  onChanged: _availableBreeds.isEmpty
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _selectedBreed = value;
-                          });
-                          if (value != null) {
-                            _loadGendersForBreed(value);
-                          }
-                        },
+                  enabled: !_isPredictingBreed, // Disable while predicting
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a breed';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a breed';
                     }
                     return null;
                   },

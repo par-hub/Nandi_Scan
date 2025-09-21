@@ -39,7 +39,7 @@ class _TestRegistrationScreenState extends State<TestRegistrationScreen> {
             
             // Breed Dropdown
             DropdownButtonFormField<String>(
-              value: _selectedBreed,
+              initialValue: _selectedBreed,
               decoration: const InputDecoration(
                 labelText: 'Select Breed',
                 border: OutlineInputBorder(),
@@ -62,7 +62,7 @@ class _TestRegistrationScreenState extends State<TestRegistrationScreen> {
             
             // Gender Dropdown
             DropdownButtonFormField<String>(
-              value: _selectedGender,
+              initialValue: _selectedGender,
               decoration: const InputDecoration(
                 labelText: 'Select Gender',
                 border: OutlineInputBorder(),

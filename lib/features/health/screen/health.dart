@@ -317,7 +317,7 @@ class _HealthState extends ConsumerState<Health> {
                       fillColor: Colors.grey[50],
                     ),
                     hint: const Text('Choose a breed'),
-                    value: _selectedBreed,
+                    initialValue: _selectedBreed,
                     items: _availableBreeds.map((breed) {
                       return DropdownMenuItem(value: breed, child: Text(breed));
                     }).toList(),
@@ -357,7 +357,7 @@ class _HealthState extends ConsumerState<Health> {
                       fillColor: Colors.grey[50],
                     ),
                     hint: const Text('Choose gender'),
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     items: _availableGenders.map((gender) {
                       return DropdownMenuItem(
                         value: gender,

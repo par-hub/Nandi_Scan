@@ -38,6 +38,8 @@ dependencies:
   flutter_riverpod: ^3.0.0
   shared_preferences: ^2.3.2
   image_picker: ^1.2.0
+  http: ^1.1.0
+  path_provider: ^2.1.1
   
 
 dev_dependencies:
