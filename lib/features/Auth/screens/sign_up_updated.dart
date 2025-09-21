@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:cnn/common/button.dart';
 import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/common/user_storage.dart';
+import 'package:cnn/home.dart';
 import 'package:cnn/features/Auth/controller/auth_controller_updated.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
-import 'package:cnn/home.dart';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -204,8 +205,8 @@ class _SignUpState extends ConsumerState<SignUp> {
         phoneController.clear();
         // Navigate to Home and remove previous routes
         if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => Home()),
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            Home.routeName,
             (route) => false,
           );
         }

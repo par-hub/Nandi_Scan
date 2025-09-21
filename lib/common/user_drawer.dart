@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cnn/common/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
 
 class UserDrawer extends StatelessWidget {
   const UserDrawer({super.key});
@@ -92,42 +93,50 @@ class UserDrawer extends StatelessWidget {
             ),
 
             // Cattles Owned Section
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+            InkWell(
+              onTap: () {
+                Navigator.pop(context); // close drawer first
+                Navigator.pushNamed(context, CattleOwnedScreen.routeName);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    child: const Icon(Icons.pets, color: AppTheme.primaryGreen, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Cattles Owned', style: AppTheme.labelLarge),
-                        const SizedBox(height: 6),
-                        Text('5 Cattles', style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary)),
-                      ],
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.pets, color: AppTheme.primaryGreen, size: 20),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Cattles Owned', style: AppTheme.labelLarge),
+                          const SizedBox(height: 6),
+                          Text('5 Cattles', style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                  ],
+                ),
               ),
             ),
 
