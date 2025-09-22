@@ -86,13 +86,23 @@ def load_model():
     """Load the cattle breed classification model"""
     global model
     try:
-        # Use the correct model path
-        model_path = r"E:\NandiScan\Deploy\models\stable_cattle_model.pth"
+        # Try multiple potential model paths
+        potential_paths = [
+            r"models\stable_cattle_model.pth",  # Relative path (preferred)
+            r"E:\NandiScan\Nandi_Scan\Deploy\models\stable_cattle_model.pth",  # Full path
+            r"..\models\stable_cattle_model.pth",  # Parent directory
+        ]
+        
+        model_path = None
+        for path in potential_paths:
+            if os.path.exists(path):
+                model_path = path
+                break
+        
+        if model_path is None:
+            raise FileNotFoundError(f"Model file not found in any of these locations: {potential_paths}")
         
         logger.info(f"Loading model from {model_path}")
-        
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
         
         # Load the model - ResNet18 architecture
         model = models.resnet18(weights=None)
