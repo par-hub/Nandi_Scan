@@ -6,19 +6,22 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
 import 'package:cnn/common/user_drawer.dart';
+import 'package:cnn/services/api_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SpecificationScreen extends StatefulWidget {
+class SpecificationScreen extends ConsumerStatefulWidget {
   static const routeName = '/specification-screen';
   const SpecificationScreen({super.key});
 
   @override
-  State<SpecificationScreen> createState() => _SpecificationScreenState();
+  ConsumerState<SpecificationScreen> createState() => _SpecificationScreenState();
 }
 
-class _SpecificationScreenState extends State<SpecificationScreen> {
+class _SpecificationScreenState extends ConsumerState<SpecificationScreen> {
   late final SpecController _controller;
   final TextEditingController _breedController = TextEditingController();
   String? _selectedGender; // New state variable for gender selection
+  bool _isPredictingBreed = false; // Track AI prediction status
 
   // Image picker variables
   File? _selectedImage;
@@ -43,12 +46,87 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     setState(() {});
   }
 
+  // AI Breed Prediction Method
+  Future<void> _predictBreedFromImage(XFile? imageFile) async {
+    if (!mounted || imageFile == null) {
+      print('❌ Specifications screen: Prediction cancelled - mounted: $mounted, imageFile: $imageFile');
+      return;
+    }
+    
+    setState(() {
+      _isPredictingBreed = true;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      
+      print('🚀 Specifications screen: Starting AI prediction...');
+      print('📁 Specifications screen: Image file name: ${imageFile.name}');
+      print('📁 Specifications screen: Image file size: ${await imageFile.length()} bytes');
+      
+      // First test the health endpoint
+      print('🏥 Specifications screen: Testing API health...');
+      final healthResult = await apiService.healthCheck();
+      print('🏥 Specifications screen: Health check - Status: ${healthResult.status}, Model Loaded: ${healthResult.modelLoaded}');
+      
+      if (!healthResult.isHealthy) {
+        print('❌ Specifications screen: API not healthy, cannot proceed with prediction');
+        _showErrorSnackBar('AI service is not available. Please try again later.');
+        return;
+      }
+      
+      // Use the web-compatible method
+      print('📡 Specifications screen: Sending prediction request to API...');
+      final result = await apiService.predictBreedFromXFile(imageFile);
+      
+      print('📊 Specifications screen: AI Response received:');
+      print('📊   Status: ${result.status}');
+      print('📊   Success: ${result.isSuccess}');
+      print('📊   Breed: "${result.prediction.breed}"');
+      print('📊   Confidence: ${result.prediction.confidence}%');
+      
+      if (result.isSuccess && result.prediction.breed.isNotEmpty) {
+        // Get the top prediction
+        final topPrediction = result.prediction;
+        
+        print('✅ Specifications screen: AI prediction successful: "${topPrediction.breed}" with ${topPrediction.confidence}% confidence');
+        
+        // Set the predicted breed in the text field
+        setState(() {
+          _breedController.text = topPrediction.breed;
+        });
+        
+        _showSuccessSnackBar(
+          '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)'
+        );
+      } else {
+        print('❌ Specifications screen: AI prediction failed');
+        _showErrorSnackBar('Could not predict breed from image. Please enter manually.');
+      }
+    } catch (e, stackTrace) {
+      print('💥 Specifications screen: Exception in breed prediction: $e');
+      print('💥 Specifications screen: Stack trace: $stackTrace');
+      _showErrorSnackBar('AI prediction failed. Please enter breed manually.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredictingBreed = false;
+        });
+      }
+    }
+  }
+
   // Image selection callback
   void _onImageSelected(File? file, XFile? webFile) {
     setState(() {
       _selectedImage = file;
       _selectedImageWeb = webFile;
     });
+    
+    // Auto-predict breed from the selected image
+    if (webFile != null) {
+      _predictBreedFromImage(webFile);
+    }
   }
 
   Future<void> _checkBreedSpecifications() async {
@@ -80,6 +158,26 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
       _selectedImage = null;
       _selectedImageWeb = null;
     });
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -232,13 +330,27 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: _breedController,
+                              enabled: !_isPredictingBreed, // Disable while predicting
                               decoration:
                                   AppTheme.inputDecoration(
-                                    hintText:
-                                        "Enter breed name (e.g., Murrah, Gir, Holstein)",
+                                    hintText: _isPredictingBreed 
+                                        ? "🤖 AI is predicting..." 
+                                        : "Enter breed name (AI prediction available)",
                                   ).copyWith(
                                     filled: true,
-                                    fillColor: Colors.white,
+                                    fillColor: _isPredictingBreed 
+                                        ? Colors.blue[50] 
+                                        : Colors.white,
+                                    suffixIcon: _isPredictingBreed 
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: Padding(
+                                              padding: EdgeInsets.all(12.0),
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          )
+                                        : const Icon(Icons.pets),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(
