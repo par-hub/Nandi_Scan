@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../Controller/spec_controller.dart';
 import '../Repository/specrepo.dart';
 import '../../../common/app_theme.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
-import 'package:cnn/common/user_drawer.dart';
+import '../../../services/api_service.dart';
 
-class SpecificationScreen extends StatefulWidget {
+class SpecificationScreen extends ConsumerStatefulWidget {
   static const routeName = '/specification-screen';
   const SpecificationScreen({super.key});
 
   @override
-  State<SpecificationScreen> createState() => _SpecificationScreenState();
+  ConsumerState<SpecificationScreen> createState() => _SpecificationScreenState();
 }
 
-class _SpecificationScreenState extends State<SpecificationScreen> {
+class _SpecificationScreenState extends ConsumerState<SpecificationScreen> {
   late final SpecController _controller;
   final TextEditingController _breedController = TextEditingController();
   String? _selectedGender; // New state variable for gender selection
+  bool _isPredictingBreed = false; // Track AI prediction status
 
   // Image picker variables
-  File? _selectedImage;
-  XFile? _selectedImageWeb;
   final GlobalKey<ImagePickerWidgetState> _imagePickerKey = GlobalKey();
 
   @override
@@ -45,10 +45,11 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
 
   // Image selection callback
   void _onImageSelected(File? file, XFile? webFile) {
-    setState(() {
-      _selectedImage = file;
-      _selectedImageWeb = webFile;
-    });
+    // Auto-predict breed from the selected image
+    XFile? imageFile = webFile ?? (file != null ? XFile(file.path) : null);
+    if (imageFile != null) {
+      _predictBreedFromImage(imageFile);
+    }
   }
 
   Future<void> _checkBreedSpecifications() async {
@@ -77,15 +78,110 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
     _imagePickerKey.currentState?.clearImage();
     setState(() {
       _selectedGender = null;
-      _selectedImage = null;
-      _selectedImageWeb = null;
     });
+  }
+
+  // AI Breed Prediction Method
+  Future<void> _predictBreedFromImage(XFile? imageFile) async {
+    if (!mounted || imageFile == null) {
+      print('❌ Prediction cancelled - mounted: $mounted, imageFile: $imageFile');
+      return;
+    }
+    
+    setState(() {
+      _isPredictingBreed = true;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      
+      print('🚀 Starting AI prediction...');
+      print('📁 Image file name: ${imageFile.name}');
+      print('📁 Image file size: ${await imageFile.length()} bytes');
+      
+      // First test the health endpoint
+      print('🏥 Testing API health...');
+      final healthResult = await apiService.healthCheck();
+      print('🏥 Health check - Status: ${healthResult.status}, Model Loaded: ${healthResult.modelLoaded}');
+      
+      if (!healthResult.isHealthy) {
+        print('❌ API not healthy, cannot proceed with prediction');
+        _showErrorSnackBar('AI service is not available. Please try again later.');
+        return;
+      }
+      
+      // Use the new web-compatible method
+      print('📡 Sending prediction request to API...');
+      final result = await apiService.predictBreedFromXFile(imageFile);
+      
+      print('📊 AI Response received:');
+      print('📊   Status: ${result.status}');
+      print('📊   Success: ${result.isSuccess}');
+      print('📊   Breed: "${result.prediction.breed}"');
+      print('📊   Confidence: ${result.prediction.confidence}%');
+      print('📊   Error: ${result.error}');
+      print('📊   Image Info: ${result.imageInfo.filename} (${result.imageInfo.sizeBytes} bytes)');
+      print('📊   Model: ${result.modelInfo.architecture} (${result.modelInfo.totalBreeds} breeds)');
+      
+      if (result.isSuccess && result.prediction.breed.isNotEmpty) {
+        // Get the top prediction
+        final topPrediction = result.prediction;
+        
+        print('✅ AI prediction successful: "${topPrediction.breed}" with ${topPrediction.confidence}% confidence');
+        
+        // Set the breed text field with AI prediction
+        setState(() {
+          _breedController.text = topPrediction.breed;
+        });
+        
+        _showSuccessSnackBar(
+          '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)'
+        );
+      } else {
+        print('❌ AI prediction failed:');
+        print('   Status: ${result.status}');
+        print('   Success check: ${result.isSuccess}');
+        print('   Breed empty check: ${result.prediction.breed.isEmpty}');
+        print('   Actual breed value: "${result.prediction.breed}"');
+        _showErrorSnackBar('Could not predict breed from image. Please enter manually.');
+      }
+    } catch (e, stackTrace) {
+      print('💥 Exception in breed prediction: $e');
+      print('💥 Stack trace: $stackTrace');
+      _showErrorSnackBar('AI prediction failed. Please select breed manually.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredictingBreed = false;
+        });
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const UserDrawer(),
+      drawer: _buildDrawer(),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -168,6 +264,22 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                           placeholder: "Add cattle image",
                         ),
                       ),
+                      if (_isPredictingBreed) ...[
+                        const SizedBox(height: 16),
+                        const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            'AI is analyzing the image...',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Header with icon and description
@@ -222,11 +334,30 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Row(
+                              children: [
+                                Text(
+                                  "Breed Name",
+                                  style: AppTheme.labelLarge.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (_isPredictingBreed)
+                                  const Icon(
+                                    Icons.auto_awesome,
+                                    color: AppTheme.primaryGreen,
+                                    size: 18,
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
                             Text(
-                              "Breed Name",
-                              style: AppTheme.labelLarge.copyWith(
-                                color: AppTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
+                              'Upload an image above for AI breed prediction',
+                              style: AppTheme.bodyMedium.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -496,6 +627,125 @@ class _SpecificationScreenState extends State<SpecificationScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+              ),
+              child: DrawerHeader(
+                decoration: const BoxDecoration(color: Colors.transparent),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      'Farmer App',
+                      style: AppTheme.headingLarge.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Livestock Management',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildDrawerItem(
+              icon: Icons.home,
+              title: 'Home',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/home');
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.pets,
+              title: 'Specifications',
+              isSelected: true,
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.app_registration,
+              title: 'Registration',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/registration');
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.health_and_safety,
+              title: 'Health',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 32),
+            _buildDrawerItem(
+              icon: Icons.settings,
+              title: 'Settings',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            _buildDrawerItem(
+              icon: Icons.help_outline,
+              title: 'Help & Support',
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppTheme.primaryGreen.withOpacity(0.1)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isSelected ? AppTheme.primaryGreen : AppTheme.textSecondary,
+        ),
+        title: Text(
+          title,
+          style: AppTheme.bodyLarge.copyWith(
+            color: isSelected ? AppTheme.primaryGreen : AppTheme.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

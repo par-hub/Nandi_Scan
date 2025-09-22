@@ -2,8 +2,10 @@ import 'package:cnn/common/app_Bar.dart';
 import 'package:cnn/common/app_theme.dart';
 import 'package:cnn/common/user_drawer.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
+
 import 'package:cnn/features/health/screen/health.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
+import 'package:cnn/features/prediction/screens/breed_prediction_screen.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatelessWidget {
@@ -12,6 +14,7 @@ class Home extends StatelessWidget {
   final List<Map<String, String>> items = const [
     {"title": "Animal Registration", "image": "assets/homereg.jpg"},
     {"title": "Check breed Specifications", "image": "assets/homespec.jpg"},
+    {"title": "AI Breed Prediction", "image": "assets/cow1.png"},
     {"title": "Health", "image": "assets/Homehealth.jpg"},
   ];
 
@@ -66,6 +69,12 @@ class Home extends StatelessWidget {
                                 Navigator.pushNamed(
                                   context,
                                   SpecificationScreen.routeName,
+                                );
+                              }
+                              if (title == 'AI Breed Prediction') {
+                                Navigator.pushNamed(
+                                  context,
+                                  BreedPredictionScreen.routeName,
                                 );
                               }
                               if (title == 'Health') {

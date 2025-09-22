@@ -1,11 +1,13 @@
+import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/home.dart';
 import 'package:cnn/features/Auth/screens/login_page.dart';
 import 'package:cnn/features/Auth/screens/sign_up_updated.dart';
 import 'package:cnn/features/Auth/screens/splash_screen.dart';
 import 'package:cnn/features/health/screen/health.dart';
-import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
+
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/features/cattle/screens/cattle_owned_screen.dart';
+import 'package:cnn/features/prediction/screens/breed_prediction_screen.dart';
 import 'package:cnn/features/profile/screens/profile_screen.dart';
 import 'package:cnn/features/settings/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -29,9 +31,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (context) => const AnimalRegistrationScreen(),
       );
     case Health.routeName:
-      return MaterialPageRoute(builder: (context) => const Health());
+      return MaterialPageRoute(
+        builder: (context) => const Health(),
+      );
     case CattleOwnedScreen.routeName:
       return MaterialPageRoute(builder: (context) => const CattleOwnedScreen());
+    case BreedPredictionScreen.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const BreedPredictionScreen(),
+      );
     case ProfileScreen.routeName:
       return MaterialPageRoute(builder: (context) => const ProfileScreen());
     case SettingsScreen.routeName:

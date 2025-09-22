@@ -1,11 +1,12 @@
 import 'package:cnn/features/health/controller/health_controller.dart';
 import 'package:cnn/features/health/models/health_model.dart';
+import 'package:cnn/common/user_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cnn/common/user_drawer.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
+import '../../../services/api_service.dart';
 
 class Health extends ConsumerStatefulWidget {
   static const routeName = '/health';
@@ -23,10 +24,9 @@ class _HealthState extends ConsumerState<Health> {
   List<CommonDisease> _diseases = [];
   bool _isLoading = false;
   bool _showResults = false;
+  bool _isPredictingBreed = false; // Track AI prediction status
 
   // Image picker variables
-  File? _selectedImage;
-  XFile? _selectedImageWeb;
   final GlobalKey<ImagePickerWidgetState> _imagePickerKey = GlobalKey();
 
   @override
@@ -38,17 +38,19 @@ class _HealthState extends ConsumerState<Health> {
 
   // Image selection callback
   void _onImageSelected(File? file, XFile? webFile) {
-    setState(() {
-      _selectedImage = file;
-      _selectedImageWeb = webFile;
-    });
+    // Auto-predict breed from the selected image
+    XFile? imageFile = webFile ?? (file != null ? XFile(file.path) : null);
+    if (imageFile != null) {
+      _predictBreedFromImage(imageFile);
+    }
   }
 
   void _initializeDropdowns() {
-    // Initialize with hardcoded breeds (same as registration)
+    // Initialize with hardcoded breeds (cleaned and deduplicated)
     _availableBreeds = [
+      // Indian breeds
       "Toda",
-      "NILI RAVI",
+      "Nili Ravi",
       "Surti",
       "Kankrej",
       "Pandharpuri",
@@ -56,92 +58,133 @@ class _HealthState extends ConsumerState<Health> {
       "Jaffarabadi",
       "Kenkatha",
       "Banni",
-      "NAGPURI",
+      "Nagpuri",
       "Chilika",
       "Khillar",
       "Kalahandi",
       "Hallikar",
       "Parlakhemundi",
       "Kherigarh",
-      "Assam Hill",
-      "JAFFARABADI",
-      "Manipur Hill",
-      "Kishan Garh",
-      "Tripura Hill",
+      "Murrah",
+      "Malvi",
+      "Kangayam",
+      "Mewati",
       "Hariana",
+      "Amritmahal",
+      "Mundari",
+      "Nagori",
+      "Bachaur",
+      "Nimari",
+      "Ponwar",
+      "Bargur",
+      "Punganur",
+      "Rathi",
+      "Dangi",
+      "Red Kandhari",
+      "Gaolao",
+      "Siri",
+      "Deoni",
+      "Tharparkar",
+      "Umblachery",
+      "Dhanni",
+      "Vechur",
+      "Ghumusari",
+      "Yak",
+      "Gangatiri",
+      
+      // International breeds that AI can predict
+      "Angus",
+      "Holstein",
+      "Holstein Friesian", 
+      "Jersey",
+      "Brahman",
+      "Charolais",
+      "Hereford",
+      "Limousin",
+      "Simmental",
+      "Galloway",
+      "Brangus",
+      "Red Dane",
+      
+      // Hill breeds
+      "Assam Hill",
+      "Manipur Hill",
+      "Tripura Hill",
       "Mizoram Hill",
-      "Kuntal",
       "Arunachal Hill",
-      "GODAVARI",
       "Sikkim Hill",
-      "Ladakhi",
       "Jharkhand Hill",
       "Himachali Pahari",
       "Chhota Nagpuri",
       "Lakhimi",
       "Tibetan Yak",
-      "murrah",
       "Andaman Hill",
-      "Malvi",
       "Nicobari",
-      "Kangayam",
       "Lakshadweep",
-      "Mewati",
       "Kashmir Hill",
-      "TODA",
       "Lahaul-Spiti",
-      "Motu",
       "Kumaon Hill",
-      "Amritmahal",
       "Garhwal Hill",
-      "Mundari",
       "Brahmagiri Hill",
-      "SURTI",
       "Western Ghats Hill",
-      "Nagori",
       "Eastern Ghats Hill",
-      "Bachaur",
       "Satpura Hill",
-      "Nimari",
       "Vindhya Hill",
-      "PANDHARPURI",
       "Maikal Hill",
-      "Ponwar",
       "Nilgiri Hill",
-      "Bargur",
       "Palani Hill",
-      "Punganur",
       "Shevaroy Hill",
-      "BHADAWARI",
       "Anamalai Hill",
-      "Rathi",
       "Cardamom Hill",
-      "Dangi",
       "Agasthyamalai Hill",
-      "Red Kandhari",
       "Pachamalai Hill",
-      "Gaolao",
       "Jawadhu Hill",
-      "Siri",
       "Kalrayan Hill",
-      "Deoni",
       "Sirumalai Hill",
-      "Tharparkar",
       "Sankagiri Hill",
-      "MEHSANA",
       "Kolli Hill",
-      "Umblachery",
       "Pudukkottai Hill",
-      "Dhanni",
       "Sivaganga Hill",
-      "Vechur",
       "Dindigul Hill",
-      "Ghumusari",
       "Theni Hill",
-      "Yak",
       "Virudhunagar Hill",
-      "Gangatiri",
       "Tenkasi Hill",
+      
+      // Other breeds
+      "Kishan Garh",
+      "Kuntal",
+      "Ladakhi",
+      "Motu",
+      "red sindhi",
+      "Sahiwal",
+      "Pulikulam",
+      "Alambadi",
+      "Ongole",
+      "Krishna Valley",
+      "Thutho",
+      "Chhattisgarhi",
+      "Gojri",
+      "Luit",
+      "Marathawadi",
+      "Shweta Kapila",
+      "Purnea",
+      "Pola Thirupu",
+      "Nari",
+      "Malnad Gidda",
+      "Kosali",
+      "Kokan Kapila",
+      "Khariar",
+      "Badri",
+      "Belahi",
+      "Binjharpuri",
+      "Dagri",
+      "Thillari",
+      "Taylor",
+      "Tarai",
+      "sunandini",
+      "shahabadi",
+      "Sanchori",
+      "ramgarhi",
     ];
     _availableGenders = ['Male', 'Female'];
   }
@@ -155,6 +198,83 @@ class _HealthState extends ConsumerState<Health> {
       });
     } catch (e) {
       print('Error loading diseases: $e');
+    }
+  }
+
+  // AI Breed Prediction Method
+  Future<void> _predictBreedFromImage(XFile? imageFile) async {
+    if (!mounted || imageFile == null) {
+      print('❌ Health screen: Prediction cancelled - mounted: $mounted, imageFile: $imageFile');
+      return;
+    }
+    
+    setState(() {
+      _isPredictingBreed = true;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      
+      print('🚀 Health screen: Starting AI prediction...');
+      print('📁 Health screen: Image file name: ${imageFile.name}');
+      print('📁 Health screen: Image file size: ${await imageFile.length()} bytes');
+      
+      // First test the health endpoint
+      print('🏥 Health screen: Testing API health...');
+      final healthResult = await apiService.healthCheck();
+      print('🏥 Health screen: Health check - Status: ${healthResult.status}, Model Loaded: ${healthResult.modelLoaded}');
+      
+      if (!healthResult.isHealthy) {
+        print('❌ Health screen: API not healthy, cannot proceed with prediction');
+        _showErrorSnackBar('AI service is not available. Please try again later.');
+        return;
+      }
+      
+      // Use the web-compatible method
+      print('📡 Health screen: Sending prediction request to API...');
+      final result = await apiService.predictBreedFromXFile(imageFile);
+      
+      print('📊 Health screen: AI Response received:');
+      print('📊   Status: ${result.status}');
+      print('📊   Success: ${result.isSuccess}');
+      print('📊   Breed: "${result.prediction.breed}"');
+      print('📊   Confidence: ${result.prediction.confidence}%');
+      
+      if (result.isSuccess && result.prediction.breed.isNotEmpty) {
+        // Get the top prediction
+        final topPrediction = result.prediction;
+        
+        print('✅ Health screen: AI prediction successful: "${topPrediction.breed}" with ${topPrediction.confidence}% confidence');
+        
+        // Only set the breed if it exists in our available breeds list
+        if (_availableBreeds.contains(topPrediction.breed)) {
+          setState(() {
+            _selectedBreed = topPrediction.breed;
+          });
+          
+          _showSuccessSnackBar(
+            '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)'
+          );
+        } else {
+          // Breed not in our list, show it as a suggestion
+          _showSuccessSnackBar(
+            '🤖 AI detected: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)\nNote: This breed is not in the health database. Please select a similar breed from the dropdown.'
+          );
+        }
+      } else {
+        print('❌ Health screen: AI prediction failed');
+        _showErrorSnackBar('Could not predict breed from image. Please select manually.');
+      }
+    } catch (e, stackTrace) {
+      print('💥 Health screen: Exception in breed prediction: $e');
+      print('💥 Health screen: Stack trace: $stackTrace');
+      _showErrorSnackBar('AI prediction failed. Please select breed manually.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredictingBreed = false;
+        });
+      }
     }
   }
 
@@ -253,8 +373,8 @@ class _HealthState extends ConsumerState<Health> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: const Text(
-          "Health Check Specifications",
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          "Health Analysis",
+          style: TextStyle(color: Color(0xFF43A047), fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -266,7 +386,7 @@ class _HealthState extends ConsumerState<Health> {
               height: 220,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
+                  colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -314,14 +434,28 @@ class _HealthState extends ConsumerState<Health> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: _isPredictingBreed 
+                          ? Colors.green[50] 
+                          : Colors.grey[50],
+                      suffixIcon: _isPredictingBreed 
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : const Icon(Icons.pets),
                     ),
-                    hint: const Text('Choose a breed'),
+                    hint: Text(_isPredictingBreed 
+                        ? '🤖 AI is predicting...' 
+                        : 'Choose a breed (AI prediction available)'),
                     value: _selectedBreed,
                     items: _availableBreeds.map((breed) {
                       return DropdownMenuItem(value: breed, child: Text(breed));
                     }).toList(),
-                    onChanged: (value) {
+                    onChanged: _isPredictingBreed ? null : (value) {
                       setState(() {
                         _selectedBreed = value;
                       });
@@ -357,7 +491,7 @@ class _HealthState extends ConsumerState<Health> {
                       fillColor: Colors.grey[50],
                     ),
                     hint: const Text('Choose gender'),
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     items: _availableGenders.map((gender) {
                       return DropdownMenuItem(
                         value: gender,
@@ -381,7 +515,7 @@ class _HealthState extends ConsumerState<Health> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Color(0xFF43A047),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -556,7 +690,6 @@ class _HealthState extends ConsumerState<Health> {
           ],
         ),
       ),
-      backgroundColor: Colors.lightBlue[100],
     );
   }
 }

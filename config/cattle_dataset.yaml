@@ -1,0 +1,194 @@
+# Cattle Breed Dataset Configuration
+# Dataset for training cattle breed classification models
+
+# Dataset Information
+dataset_name: "Cattle Breed Classification Dataset"
+dataset_path: "datasets/CattleBreed"
+total_classes: 124
+dataset_type: "image_classification"
+
+# Training Configuration
+train:
+  data_dir: "datasets/CattleBreed"
+  val_split: 0.2
+  test_split: 0.1
+  batch_size: 32
+  epochs: 50
+  learning_rate: 0.001
+  image_size: [224, 224]
+
+# Model Configuration
+model:
+  architecture: "resnet50"
+  num_classes: 124
+  pretrained: true
+  dropout: 0.5
+
+# Data Augmentation
+augmentation:
+  horizontal_flip: true
+  rotation: 15
+  brightness: 0.2
+  contrast: 0.2
+  saturation: 0.2
+  hue: 0.1
+
+# Class Names (Cattle Breeds)
+classes:
+  0: "Abondance"
+  1: "Afrikaner"
+  2: "Alambadi"
+  3: "Albera"
+  4: "AmericanMilkingDevon"
+  5: "Amritmahal"
+  6: "Angus"
+  7: "AnkoleWatusi"
+  8: "Aquitaine"
+  9: "Argentine"
+  10: "Armorican"
+  11: "Arouquesa"
+  12: "Asturian"
+  13: "AustralianBraford"
+  14: "Ayrshire"
+  15: "Banni"
+  16: "Bargur"
+  17: "Barzona"
+  18: "Bazadaise"
+  19: "Belgian"
+  20: "Belmont"
+  21: "Bhadawari"
+  22: "BlackHereford"
+  23: "BlondeAquitaine"
+  24: "Boran"
+  25: "Braford"
+  26: "Brahman"
+  27: "Brangus"
+  28: "Braunvieh"
+  29: "Brava"
+  30: "brownSwiss"
+  31: "Brown_Swiss"
+  32: "Burlina"
+  33: "Busa"
+  34: "Cachena"
+  35: "Camargue"
+  36: "CanadianSpeckle"
+  37: "Canadienne"
+  38: "Canchim"
+  39: "Caracu"
+  40: "Casta"
+  41: "Charolais"
+  42: "Chianina"
+  43: "Corriente"
+  44: "Corsican"
+  45: "Criollo"
+  46: "Dangi"
+  47: "DanishRed"
+  48: "Deoni"
+  49: "Devon"
+  50: "Dexter"
+  51: "Dhannir"
+  52: "Droughtmaster"
+  53: "DutchBelted"
+  54: "EnglishLonghorn"
+  55: "Evolene"
+  56: "Fjall"
+  57: "Fleckvlehl"
+  58: "FloridaCracker"
+  59: "Galloway"
+  60: "Gangatiri"
+  61: "Gaolao"
+  62: "Gascon"
+  63: "Gelbvieh"
+  64: "GermanAngus"
+  65: "Gir"
+  66: "Glan"
+  67: "Gloucester"
+  68: "Guernsey"
+  69: "HackCattle"
+  70: "Halikar"
+  71: "Hallikar"
+  72: "Hariana"
+  73: "Haryana"
+  74: "Hereford"
+  75: "herens"
+  76: "Highland"
+  77: "Hinterwald"
+  78: "HolandoArgentio"
+  79: "Holstein_Friesian"
+  80: "HungarianGrey"
+  81: "Icelandic"
+  82: "Jaffrabadi"
+  83: "jersey"
+  84: "Jutland"
+  85: "Kangayam"
+  86: "Kankrej"
+  87: "Kasargod"
+  88: "Kenkatha"
+  89: "Kerry"
+  90: "Kherigarh"
+  91: "Khillari"
+  92: "KrishnaValley"
+  93: "Krishna_Valley"
+  94: "Kuri"
+  95: "LatvianBrowni"
+  96: "Lohani"
+  97: "Lowline"
+  98: "Luing"
+  99: "Malnad_gidda"
+  100: "Malvi"
+  101: "Maronesa"
+  102: "Mehsana"
+  103: "Mewati"
+  104: "MilkingShorthorn"
+  105: "Mirandesa"
+  106: "Montbeliarde"
+  107: "Murboden"
+  108: "Murrah"
+  109: "Nagori"
+  110: "Nagpuri"
+  111: "Nili_Ravi"
+  112: "Nimari"
+  113: "Ongole"
+  114: "Pulikulam"
+  115: "Rathi"
+  116: "Red_Dane"
+  117: "Red_Sindhi"
+  118: "Sahiwal"
+  119: "Surti"
+  120: "Tharparkar"
+  121: "Toda"
+  122: "Umblachery"
+  123: "Vechur"
+
+# Training Parameters
+optimizer:
+  type: "Adam"
+  weight_decay: 0.0001
+
+scheduler:
+  type: "StepLR"
+  step_size: 20
+  gamma: 0.1
+
+# Hardware Configuration
+device: "cuda"  # Use "cpu" if CUDA not available
+num_workers: 4
+pin_memory: true
+
+# Paths
+model_save_path: "models/cattle_classifier.pth"
+log_dir: "logs/"
+checkpoint_dir: "checkpoints/"
+
+# Validation
+early_stopping:
+  patience: 10
+  min_delta: 0.001
+
+# Metrics
+metrics:
+  - "accuracy"
+  - "top5_accuracy"
+  - "precision"
+  - "recall"
+  - "f1_score"
