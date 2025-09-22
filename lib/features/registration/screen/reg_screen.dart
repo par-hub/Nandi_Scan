@@ -29,7 +29,6 @@ class _AnimalRegistrationScreenState
   String? _selectedGender;
   bool _isLoading = false;
   bool _isPredictingBreed = false; // Track AI prediction status
-  List<String> _availableGenders = [];
   String? _currentUserEmail;
   String? _currentUserId;
   
@@ -41,8 +40,6 @@ class _AnimalRegistrationScreenState
   @override
   void initState() {
     super.initState();
-    // Initialize dropdown data
-    _initializeDropdowns();
     _loadCurrentUser();
   }
 
@@ -72,7 +69,7 @@ class _AnimalRegistrationScreenState
     });
   }
 
-  Future<void> _registerCattle() async {
+  Future<void> _registerAnimal() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -129,14 +126,7 @@ class _AnimalRegistrationScreenState
       _selectedGender = null;
       _selectedImage = null; // Clear the selected image
       _selectedImageWeb = null; // Clear web image
-      // Reset dropdowns to original values to ensure they work for next registration
-      _initializeDropdowns();
     });
-  }
-
-  void _initializeDropdowns() {
-    // Initialize gender dropdown only (breed is now a text field)
-    _availableGenders = ['Male', 'Female'];
   }
 
   void _showErrorSnackBar(String message) {
@@ -329,399 +319,831 @@ class _AnimalRegistrationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const UserDrawer(), // unified side drawer
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          "Animal Registration",
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          'Animal Registration',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
         ),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Curved top with image placeholder
-              Container(
-                width: double.infinity,
-                height: 220,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(60),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(30.0),
-                  child: Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: _pickImage,
-                            child: Container(
-                              width: 140,
-                              height: 140,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                  width: 2,
-                                ),
-                              ),
-                              child: _selectedImage != null || _selectedImageWeb != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: kIsWeb && _selectedImageWeb != null
-                                          ? FutureBuilder<Uint8List>(
-                                              future: _selectedImageWeb!.readAsBytes(),
-                                              builder: (context, snapshot) {
-                                                if (snapshot.hasData) {
-                                                  return Image.memory(
-                                                    snapshot.data!,
-                                                    width: 136,
-                                                    height: 136,
-                                                    fit: BoxFit.cover,
-                                                  );
-                                                }
-                                                return const Center(child: CircularProgressIndicator());
-                                              },
-                                            )
-                                          : _selectedImage != null
-                                              ? Image.file(
-                                                  _selectedImage!,
-                                                  width: 136,
-                                                  height: 136,
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : Container(),
-                                    )
-                                  : const Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_a_photo,
-                                            color: Colors.teal,
-                                            size: 40,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "Add image",
-                                            style: TextStyle(
-                                              color: Colors.teal,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 5,
-                            right: 5,
-                            child: GestureDetector(
-                              onTap: _pickImage,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.blue,
-                                radius: 18,
-                                child: Icon(
-                                  _selectedImage != null || _selectedImageWeb != null
-                                      ? Icons.edit
-                                      : Icons.add_circle,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Current User Info
-              if (_currentUserEmail != null)
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.blue.shade50,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.person, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text(
-                            'Registering for:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SelectableText('Email: $_currentUserEmail'),
-                      SelectableText(
-                        'User ID: ${_currentUserId?.substring(0, 8)}...',
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.red.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.red.shade50,
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.red),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Please sign in to register cattle',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Breed Text Field
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: TextFormField(
-                  controller: _breedController,
-                  decoration: InputDecoration(
-                    hintText: _isPredictingBreed 
-                        ? '🤖 AI is predicting...' 
-                        : 'Enter Breed (AI prediction available)',
-                    labelText: 'Breed',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: _isPredictingBreed 
-                        ? Colors.blue[50] 
-                        : Colors.grey[100],
-                    suffixIcon: _isPredictingBreed 
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Padding(
-                              padding: EdgeInsets.all(12.0),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : const Icon(Icons.pets),
-                  ),
-                  enabled: !_isPredictingBreed, // Disable while predicting
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a breed';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Gender Dropdown
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: DropdownButtonFormField<String>(
-                  value: _selectedGender,
-                  decoration: InputDecoration(
-                    hintText: 'Select Gender',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  items: _availableGenders.map((gender) {
-                    return DropdownMenuItem<String>(
-                      value: gender,
-                      child: Text(gender),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGender = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select gender';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Height Field
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: TextFormField(
-                  controller: _heightController,
-                  decoration: InputDecoration(
-                    hintText: 'Height (in cm)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter height';
-                    }
-                    final height = double.tryParse(value);
-                    if (height == null || height <= 0) {
-                      return 'Please enter a valid height';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Color Field
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: TextFormField(
-                  controller: _colorController,
-                  decoration: InputDecoration(
-                    hintText: 'Color',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter color';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Weight Field
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: TextFormField(
-                  controller: _weightController,
-                  decoration: InputDecoration(
-                    hintText: 'Weight (in kg)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter weight';
-                    }
-                    final weight = double.tryParse(value);
-                    if (weight == null || weight <= 0) {
-                      return 'Please enter a valid weight';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Register Button
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _currentUserEmail != null
-                            ? Colors.black
-                            : Colors.grey,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 12,
-                        ),
-                      ),
-                      onPressed: _currentUserEmail != null
-                          ? _registerCattle
-                          : null,
-                      child: Text(
-                        _currentUserEmail != null
-                            ? "Register Cattle"
-                            : "Sign In Required",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-              const SizedBox(height: 20),
+      drawer: const UserDrawer(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF43A047),
+              Color(0xFF2E7D32),
             ],
           ),
         ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Section
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.pets,
+                          size: 60,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Register Your Cattle',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Upload an image for AI breed detection and register your animal',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // User Info Section
+                  if (_currentUserEmail != null)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                color: Color(0xFF43A047),
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Registering for',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.green[200]!),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.email, size: 16, color: Colors.green),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _currentUserEmail!,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.badge, size: 16, color: Colors.green),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'ID: ${_currentUserId?.substring(0, 8)}...',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.red, size: 28),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Please sign in to register cattle',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 25),
+
+                  // Image Upload Section
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.photo_camera,
+                              color: _isPredictingBreed ? Colors.blue : const Color(0xFF43A047),
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _isPredictingBreed ? 'AI is analyzing...' : 'Upload Animal Image',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: _isPredictingBreed ? Colors.blue : Colors.grey[800],
+                              ),
+                            ),
+                            if (_isPredictingBreed) ...[
+                              const SizedBox(width: 12),
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            width: double.infinity,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: _selectedImage != null || _selectedImageWeb != null
+                                    ? Colors.green[300]!
+                                    : Colors.grey[300]!,
+                                width: 2,
+                              ),
+                              color: _selectedImage != null || _selectedImageWeb != null
+                                  ? Colors.green[50]
+                                  : Colors.grey[50],
+                            ),
+                            child: _selectedImage != null || _selectedImageWeb != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(13),
+                                    child: kIsWeb && _selectedImageWeb != null
+                                        ? FutureBuilder<Uint8List>(
+                                            future: _selectedImageWeb!.readAsBytes(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.hasData) {
+                                                return Stack(
+                                                  children: [
+                                                    Image.memory(
+                                                      snapshot.data!,
+                                                      width: double.infinity,
+                                                      height: 200,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                    Positioned(
+                                                      top: 8,
+                                                      right: 8,
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(8),
+                                                        decoration: const BoxDecoration(
+                                                          color: Colors.green,
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.check,
+                                                          color: Colors.white,
+                                                          size: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              }
+                                              return const Center(child: CircularProgressIndicator());
+                                            },
+                                          )
+                                        : _selectedImage != null
+                                            ? Stack(
+                                                children: [
+                                                  Image.file(
+                                                    _selectedImage!,
+                                                    width: double.infinity,
+                                                    height: 200,
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                  Positioned(
+                                                    top: 8,
+                                                    right: 8,
+                                                    child: Container(
+                                                      padding: const EdgeInsets.all(8),
+                                                      decoration: const BoxDecoration(
+                                                        color: Colors.green,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.check,
+                                                        color: Colors.white,
+                                                        size: 16,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : Container()
+                                  )
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo,
+                                        size: 48,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        'Tap to upload animal image',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'AI will automatically detect the breed',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        if (_isPredictingBreed)
+                          Container(
+                            margin: const EdgeInsets.only(top: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.smart_toy, color: Colors.blue),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'AI is analyzing your image to detect the breed...',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Breed Input Section
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.pets,
+                              color: _breedController.text.isNotEmpty ? Colors.green : const Color(0xFF43A047),
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Breed Information',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_breedController.text.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Entered',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          controller: _breedController,
+                          enabled: !_isPredictingBreed,
+                          decoration: InputDecoration(
+                            labelText: 'Breed Name',
+                            hintText: _isPredictingBreed 
+                                ? '🤖 AI is predicting...' 
+                                : 'Enter or let AI predict the breed',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: _isPredictingBreed 
+                                ? Colors.blue[50] 
+                                : _breedController.text.isNotEmpty 
+                                    ? Colors.green[50] 
+                                    : Colors.grey[50],
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: _isPredictingBreed ? Colors.blue : const Color(0xFF43A047),
+                            ),
+                            suffixIcon: _isPredictingBreed 
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter the breed';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Gender Selection Section
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.wc,
+                              color: _selectedGender != null ? Colors.green : const Color(0xFF43A047),
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Select Gender',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_selectedGender != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Selected',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: ['Male', 'Female'].map((gender) {
+                            final isSelected = _selectedGender == gender;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedGender = gender;
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  margin: EdgeInsets.only(
+                                    right: gender == 'Male' ? 10 : 0,
+                                    left: gender == 'Female' ? 10 : 0,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFF43A047) : Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF43A047) : Colors.grey[300]!,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        gender == 'Male' ? Icons.male : Icons.female,
+                                        color: isSelected ? Colors.white : Colors.grey[600],
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        gender,
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.white : Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Additional Info Fields Section
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFF43A047),
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Additional Information',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Height Field
+                        TextFormField(
+                          controller: _heightController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Height (cm)',
+                            hintText: 'Enter height in centimeters',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            prefixIcon: const Icon(Icons.height, color: Color(0xFF43A047)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter height';
+                            }
+                            final height = double.tryParse(value);
+                            if (height == null || height <= 0) {
+                              return 'Please enter a valid height';
+                            }
+                            return null;
+                          },
+                        ),
+                        
+                        const SizedBox(height: 20),
+
+                        // Color Field
+                        TextFormField(
+                          controller: _colorController,
+                          decoration: InputDecoration(
+                            labelText: 'Color',
+                            hintText: 'Enter animal color',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            prefixIcon: const Icon(Icons.palette, color: Color(0xFF43A047)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter color';
+                            }
+                            return null;
+                          },
+                        ),
+                        
+                        const SizedBox(height: 20),
+
+                        // Weight Field
+                        TextFormField(
+                          controller: _weightController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Weight (kg)',
+                            hintText: 'Enter weight in kilograms',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            prefixIcon: const Icon(Icons.monitor_weight, color: Color(0xFF43A047)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter weight';
+                            }
+                            final weight = double.tryParse(value);
+                            if (weight == null || weight <= 0) {
+                              return 'Please enter a valid weight';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Register Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isLoading
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Registering Animal...',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ElevatedButton(
+                              onPressed: _currentUserEmail != null ? _registerAnimal : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _currentUserEmail != null
+                                    ? const Color(0xFF43A047)
+                                    : Colors.grey[400],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: _currentUserEmail != null ? 8 : 2,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _currentUserEmail != null 
+                                        ? Icons.app_registration 
+                                        : Icons.login,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _currentUserEmail != null
+                                        ? 'Register Animal'
+                                        : 'Sign In Required',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      backgroundColor: Colors.lightBlue[100],
     );
   }
 }

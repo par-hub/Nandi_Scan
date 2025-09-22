@@ -8,6 +8,7 @@ import 'package:cnn/home.dart';
 import 'package:cnn/features/Specifation/screens/specification_with_controller.dart';
 import 'package:cnn/features/registration/screen/reg_screen.dart';
 import 'package:cnn/features/health/screen/health.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserDrawer extends ConsumerStatefulWidget {
   const UserDrawer({super.key});

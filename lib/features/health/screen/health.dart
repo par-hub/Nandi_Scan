@@ -1,12 +1,12 @@
 import 'package:cnn/features/health/controller/health_controller.dart';
 import 'package:cnn/features/health/models/health_model.dart';
+import 'package:cnn/common/user_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cnn/common/user_drawer.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../common/widgets/image_picker_widget.dart';
-import 'package:cnn/services/api_service.dart';
+import '../../../services/api_service.dart';
 
 class Health extends ConsumerStatefulWidget {
   static const routeName = '/health';
@@ -27,8 +27,6 @@ class _HealthState extends ConsumerState<Health> {
   bool _isPredictingBreed = false; // Track AI prediction status
 
   // Image picker variables
-  File? _selectedImage;
-  XFile? _selectedImageWeb;
   final GlobalKey<ImagePickerWidgetState> _imagePickerKey = GlobalKey();
 
   @override
@@ -40,14 +38,10 @@ class _HealthState extends ConsumerState<Health> {
 
   // Image selection callback
   void _onImageSelected(File? file, XFile? webFile) {
-    setState(() {
-      _selectedImage = file;
-      _selectedImageWeb = webFile;
-    });
-    
     // Auto-predict breed from the selected image
-    if (webFile != null) {
-      _predictBreedFromImage(webFile);
+    XFile? imageFile = webFile ?? (file != null ? XFile(file.path) : null);
+    if (imageFile != null) {
+      _predictBreedFromImage(imageFile);
     }
   }
 
@@ -161,6 +155,36 @@ class _HealthState extends ConsumerState<Health> {
       "Kuntal",
       "Ladakhi",
       "Motu",
+      "red sindhi",
+      "Sahiwal",
+      "Pulikulam",
+      "Alambadi",
+      "Ongole",
+      "Krishna Valley",
+      "Thutho",
+      "Chhattisgarhi",
+      "Gojri",
+      "Luit",
+      "Marathawadi",
+      "Shweta Kapila",
+      "Purnea",
+      "Pola Thirupu",
+      "Nari",
+      "Malnad Gidda",
+      "Kosali",
+      "Kokan Kapila",
+      "Khariar",
+      "Badri",
+      "Belahi",
+      "Binjharpuri",
+      "Dagri",
+      "Thillari",
+      "Taylor",
+      "Tarai",
+      "sunandini",
+      "shahabadi",
+      "Sanchori",
+      "ramgarhi",
     ];
     _availableGenders = ['Male', 'Female'];
   }
@@ -349,8 +373,8 @@ class _HealthState extends ConsumerState<Health> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: const Text(
-          "Health Check Specifications",
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          "Health Analysis",
+          style: TextStyle(color: Color(0xFF43A047), fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -362,7 +386,7 @@ class _HealthState extends ConsumerState<Health> {
               height: 220,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
+                  colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -411,7 +435,7 @@ class _HealthState extends ConsumerState<Health> {
                       ),
                       filled: true,
                       fillColor: _isPredictingBreed 
-                          ? Colors.blue[50] 
+                          ? Colors.green[50] 
                           : Colors.grey[50],
                       suffixIcon: _isPredictingBreed 
                           ? const SizedBox(
@@ -491,7 +515,7 @@ class _HealthState extends ConsumerState<Health> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Color(0xFF43A047),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -666,7 +690,6 @@ class _HealthState extends ConsumerState<Health> {
           ],
         ),
       ),
-      backgroundColor: Colors.lightBlue[100],
     );
   }
 }
