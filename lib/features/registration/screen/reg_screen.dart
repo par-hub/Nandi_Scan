@@ -1,13 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cnn/features/registration/controller/registration_controller.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:cnn/services/api_service.dart';
-import 'package:cnn/common/user_drawer.dart';
+import 'package:cnn/common/app_theme.dart';
+import 'package:cnn/common/glassmorphic_components.dart';
+import 'package:cnn/features/registration/controller/registration_controller.dart';
+import 'package:cnn/services/api_service_fixed.dart';
 
 class AnimalRegistrationScreen extends ConsumerStatefulWidget {
   static const routeName = '/registration';
@@ -20,113 +18,406 @@ class AnimalRegistrationScreen extends ConsumerStatefulWidget {
 
 class _AnimalRegistrationScreenState
     extends ConsumerState<AnimalRegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _breedController = TextEditingController();
   final _heightController = TextEditingController();
-  final _colorController = TextEditingController();
   final _weightController = TextEditingController();
-  final _breedController = TextEditingController(); // Add breed text controller
-
-  String? _selectedGender;
-  bool _isLoading = false;
-  bool _isPredictingBreed = false; // Track AI prediction status
-  String? _currentUserEmail;
-  String? _currentUserId;
+  final _colorController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
   
-  // Image picker variables
-  File? _selectedImage;
-  XFile? _selectedImageWeb; // For web platform
-  final ImagePicker _imagePicker = ImagePicker();
+  File? _image;
+  XFile? _selectedImage; // For AI prediction
+  String? _selectedGender;
+  String? _selectedBreed;
+  bool _isLoading = false;
+  bool _isLoadingBreeds = false;
+  bool _isPredicting = false; // For AI prediction loading state
+  List<String> _availableBreeds = [];
+  List<String> _availableGenders = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
+    _loadBreeds();
   }
 
   @override
   void dispose() {
-    _heightController.dispose();
-    _colorController.dispose();
-    _weightController.dispose();
     _breedController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    _colorController.dispose();
     super.dispose();
   }
 
-  void _loadCurrentUser() {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
+  Future<void> _loadBreeds() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingBreeds = true;
+    });
+
+    try {
+      final registrationController = ref.read(registrationControllerProvider);
+      final breeds = await registrationController.getUniqueBreeds();
+      
+      if (!mounted) return;
       setState(() {
-        _currentUserEmail = user.email;
-        _currentUserId = user.id;
+        _availableBreeds = breeds;
+        _isLoadingBreeds = false;
       });
+    } catch (e) {
+      print('Error loading breeds: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingBreeds = false;
+      });
+      _showErrorSnackBar('Failed to load breeds from database');
     }
   }
 
-  void _loadGendersForBreed(String breed) {
-    // Since genders are always available, just reset the selection
+  Future<void> _onBreedChanged(String? breed) async {
+    if (breed == null || !mounted) return;
+    
     setState(() {
+      _selectedBreed = breed;
+      _breedController.text = breed;
       _selectedGender = null; // Reset gender when breed changes
+      _availableGenders = [];
+    });
+
+    try {
+      final registrationController = ref.read(registrationControllerProvider);
+      final genders = await registrationController.getGendersForBreed(breed);
+      
+      if (!mounted) return;
+      setState(() {
+        _availableGenders = genders.map((g) => g == 'm' ? 'Male' : 'Female').toList();
+      });
+    } catch (e) {
+      print('Error loading genders for breed: $e');
+      if (mounted) {
+        _showErrorSnackBar('Failed to load genders for selected breed');
+      }
+    }
+  }
+
+  void _clearForm() {
+    setState(() {
+      _image = null;
+      _selectedImage = null;
+      _selectedGender = null;
+      _selectedBreed = null;
+      _breedController.clear();
+      _heightController.clear();
+      _weightController.clear();
+      _colorController.clear();
+      _availableGenders = [];
+      _isPredicting = false;
     });
   }
 
+  Future<void> _pickImage() async {
+    // Show image source selection dialog
+    _showImageSourceDialog();
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImageFromSource(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImageFromSource(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+      
+      if (image != null) {
+        final imageFile = File(image.path);
+        
+        // Verify the file exists and is readable
+        if (await imageFile.exists()) {
+          if (!mounted) return;
+          setState(() {
+            _image = imageFile;
+            _selectedImage = image; // Store XFile for AI prediction
+          });
+          
+          // Trigger AI breed prediction
+          _predictBreedFromImage(image);
+          
+          if (mounted) {
+            _showSuccessSnackBar('Image uploaded successfully');
+          }
+        } else {
+          if (mounted) {
+            _showErrorSnackBar('Selected image file could not be accessed');
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Failed to pick image: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _predictBreedFromImage(XFile? imageFile) async {
+    if (imageFile == null || !mounted) return;
+
+    setState(() {
+      _isPredicting = true;
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.predictBreed(imageFile);
+
+      if (!mounted) return;
+      
+      if (result.status == 'success' && result.prediction.breed.isNotEmpty) {
+        final topPrediction = result.prediction;
+        
+        // Set the predicted breed and trigger gender loading
+        await _onBreedChanged(topPrediction.breed);
+        
+        if (mounted) {
+          _showSuccessSnackBar(
+              '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)');
+        }
+      } else {
+        if (mounted) {
+          _showSuccessSnackBar('Could not predict breed from image. Please select manually.');
+        }
+      }
+    } catch (e) {
+      print('AI prediction error: $e');
+      if (mounted) {
+        _showSuccessSnackBar('AI prediction unavailable. Please select breed manually.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredicting = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildSafeImage() {
+    try {
+      if (_image != null && _image!.existsSync()) {
+        return Image.file(
+          _image!,
+          height: 200,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image,
+                    size: 48,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      } else {
+        return Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_not_supported,
+                size: 48,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Image file not found',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error,
+              size: 48,
+              color: Colors.red.shade400,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Error loading image',
+              style: TextStyle(
+                color: Colors.red.shade400,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   Future<void> _registerAnimal() async {
-    if (!_formKey.currentState!.validate()) {
+    // Image is now optional - no longer required for registration
+    
+    if (_selectedBreed == null || _selectedBreed!.isEmpty) {
+      _showErrorSnackBar('Please select a breed');
       return;
     }
 
-    if (_breedController.text.trim().isEmpty) {
-      _showErrorSnackBar('Please enter a breed');
+    if (_colorController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter animal color');
       return;
     }
 
     if (_selectedGender == null) {
-      _showErrorSnackBar('Please select a gender');
+      _showErrorSnackBar('Please select gender');
       return;
     }
 
+    if (_heightController.text.trim().isEmpty || _weightController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter height and weight');
+      return;
+    }
+
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Convert gender from UI format to database format
-      String genderCode = _selectedGender == 'Male' ? 'm' : 'f';
+      // Parse numeric values
+      final height = double.tryParse(_heightController.text.trim());
+      final weight = double.tryParse(_weightController.text.trim());
+      
+      if (height == null || weight == null) {
+        if (mounted) _showErrorSnackBar('Please enter valid numeric values for height and weight');
+        return;
+      }
 
-      // Use the registration controller to upload to Supabase
-      final controller = ref.read(registrationControllerProvider);
-      final error = await controller.registerCattle(
-        breed: _breedController.text.trim(),
-        gender: genderCode,
-        height: double.parse(_heightController.text),
+      if (weight <= 0 || height <= 0) {
+        if (mounted) _showErrorSnackBar('Height and weight must be positive values');
+        return;
+      }
+
+      // Use the registration controller instead of direct Supabase calls
+      final registrationController = ref.read(registrationControllerProvider);
+      
+      // Convert gender to single letter format for database
+      final genderForDb = _selectedGender!.toLowerCase() == 'male' ? 'm' : 'f';
+      
+      // Register cattle using the controller
+      final result = await registrationController.registerCattle(
+        breed: _selectedBreed!,
+        gender: genderForDb,
+        height: height,
         color: _colorController.text.trim(),
-        weight: double.parse(_weightController.text),
+        weight: weight,
       );
 
-      if (error == null) {
-        _showSuccessSnackBar('Cattle registered successfully to database!');
+      if (!mounted) return;
+
+      if (result == null) {
+        // Success - result is null when registration succeeds
+        _showSuccessSnackBar('Animal registered successfully!');
+        
+        // Clear form using helper method
         _clearForm();
       } else {
-        _showErrorSnackBar('Database error: $error');
+        // Error - result contains error message
+        _showErrorSnackBar(result);
       }
     } catch (e) {
-      _showErrorSnackBar('Registration failed: ${e.toString()}');
+      print('Registration error: $e');
+      if (mounted) {
+        _showErrorSnackBar('Failed to register animal: ${e.toString()}');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void _clearForm() {
-    _heightController.clear();
-    _colorController.clear();
-    _weightController.clear();
-    _breedController.clear(); // Clear breed text field
-    setState(() {
-      _selectedGender = null;
-      _selectedImage = null; // Clear the selected image
-      _selectedImageWeb = null; // Clear web image
-    });
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -134,1012 +425,577 @@ class _AnimalRegistrationScreenState
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  // AI Breed Prediction Method
-  Future<void> _predictBreedFromImage(XFile? imageFile) async {
-    if (!mounted || imageFile == null) {
-      print('❌ Prediction cancelled - mounted: $mounted, imageFile: $imageFile');
-      return;
-    }
-    
-    setState(() {
-      _isPredictingBreed = true;
-    });
-
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      
-      print('🚀 Starting AI prediction...');
-      print('📁 Image file name: ${imageFile.name}');
-      print('📁 Image file size: ${await imageFile.length()} bytes');
-      
-      // First test the health endpoint
-      print('🏥 Testing API health...');
-      final healthResult = await apiService.healthCheck();
-      print('🏥 Health check - Status: ${healthResult.status}, Model Loaded: ${healthResult.modelLoaded}');
-      
-      if (!healthResult.isHealthy) {
-        print('❌ API not healthy, cannot proceed with prediction');
-        _showErrorSnackBar('AI service is not available. Please try again later.');
-        return;
-      }
-      
-      // Use the new web-compatible method
-      print('📡 Sending prediction request to API...');
-      final result = await apiService.predictBreedFromXFile(imageFile);
-      
-      print('📊 AI Response received:');
-      print('📊   Status: ${result.status}');
-      print('📊   Success: ${result.isSuccess}');
-      print('📊   Breed: "${result.prediction.breed}"');
-      print('📊   Confidence: ${result.prediction.confidence}%');
-      print('📊   Error: ${result.error}');
-      print('📊   Image Info: ${result.imageInfo.filename} (${result.imageInfo.sizeBytes} bytes)');
-      print('📊   Model: ${result.modelInfo.architecture} (${result.modelInfo.totalBreeds} breeds)');
-      
-      if (result.isSuccess && result.prediction.breed.isNotEmpty) {
-        // Get the top prediction
-        final topPrediction = result.prediction;
-        
-        print('✅ AI prediction successful: "${topPrediction.breed}" with ${topPrediction.confidence}% confidence');
-        
-        // Directly set the breed text field with AI prediction
-        setState(() {
-          _breedController.text = topPrediction.breed;
-        });
-        
-        // Load genders for the predicted breed
-        _loadGendersForBreed(topPrediction.breed);
-        
-        _showSuccessSnackBar(
-          '🤖 AI Prediction: ${topPrediction.breed} (${(topPrediction.confidence).toStringAsFixed(1)}% confidence)'
-        );
-      } else {
-        print('❌ AI prediction failed:');
-        print('   Status: ${result.status}');
-        print('   Success check: ${result.isSuccess}');
-        print('   Breed empty check: ${result.prediction.breed.isEmpty}');
-        print('   Actual breed value: "${result.prediction.breed}"');
-        _showErrorSnackBar('Could not predict breed from image. Please enter manually.');
-      }
-    } catch (e, stackTrace) {
-      print('💥 Exception in breed prediction: $e');
-      print('💥 Stack trace: $stackTrace');
-      _showErrorSnackBar('AI prediction failed. Please select breed manually.');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPredictingBreed = false;
-        });
-      }
-    }
-  }
-
-  // Image picker method
-  Future<void> _pickImage() async {
-    try {
-      showModalBottomSheet(
-        context: context,
-        builder: (BuildContext context) {
-          return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.camera),
-                  title: const Text('Take Photo'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final pickedFile = await _imagePicker.pickImage(
-                      source: ImageSource.camera,
-                      maxWidth: 1024,
-                      maxHeight: 1024,
-                      imageQuality: 80,
-                    );
-                    if (pickedFile != null) {
-                      setState(() {
-                        if (kIsWeb) {
-                          _selectedImageWeb = pickedFile;
-                          _selectedImage = null;
-                        } else {
-                          _selectedImage = File(pickedFile.path);
-                          _selectedImageWeb = null;
-                        }
-                      });
-                      
-                      // Auto-predict breed from the selected image
-                      _predictBreedFromImage(pickedFile);
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Choose from Gallery'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final pickedFile = await _imagePicker.pickImage(
-                      source: ImageSource.gallery,
-                      maxWidth: 1024,
-                      maxHeight: 1024,
-                      imageQuality: 80,
-                    );
-                    if (pickedFile != null) {
-                      setState(() {
-                        if (kIsWeb) {
-                          _selectedImageWeb = pickedFile;
-                          _selectedImage = null;
-                        } else {
-                          _selectedImage = File(pickedFile.path);
-                          _selectedImageWeb = null;
-                        }
-                      });
-                      
-                      // Auto-predict breed from the selected image
-                      _predictBreedFromImage(pickedFile);
-                    }
-                  },
-                ),
-                if (_selectedImage != null || _selectedImageWeb != null)
-                  ListTile(
-                    leading: const Icon(Icons.delete),
-                    title: const Text('Remove Image'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _selectedImage = null;
-                        _selectedImageWeb = null;
-                      });
-                    },
-                  ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
-      );
-    } catch (e) {
-      _showErrorSnackBar('Failed to pick image: ${e.toString()}');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        elevation: 0,
+    return GradientBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Animal Registration',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+        appBar: AppBar(
+          title: Text(
+            'Register Animal',
+            style: AppTheme.headingMedium.copyWith(
+              color: AppTheme.textPrimary,
+            ),
           ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      drawer: const UserDrawer(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF43A047),
-              Color(0xFF2E7D32),
-            ],
-          ),
-        ),
-        child: SafeArea(
+        body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Section
-                  Container(
-                    padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                // Centered Title - Demo Style
+                Text(
+                  'Register New Cattle',
+                  style: AppTheme.headingLarge.copyWith(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Upload Image Area - Demo Style  
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
+                        color: AppTheme.textSecondary.withOpacity(0.4),
+                        width: 2,
+                        style: BorderStyle.solid,
                       ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
-                        const Icon(
-                          Icons.pets,
-                          size: 60,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Register Your Cattle',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        if (_image != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _buildSafeImage(),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Upload an image for AI breed detection and register your animal',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // User Info Section
-                  if (_currentUserEmail != null)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
+                          const SizedBox(height: 12),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              const Icon(
-                                Icons.person,
-                                color: Color(0xFF43A047),
-                                size: 28,
+                              TextButton.icon(
+                                onPressed: _pickImage,
+                                icon: const Icon(Icons.refresh, size: 18),
+                                label: const Text('Change Image'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.primaryGreen,
+                                ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Registering for',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
+                              TextButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _image = null;
+                                    _selectedImage = null;
+                                    _isPredicting = false;
+                                  });
+                                  _showSuccessSnackBar('Image removed');
+                                },
+                                icon: const Icon(Icons.delete_outline, size: 18),
+                                label: const Text('Remove'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red.shade400,
                                 ),
                               ),
                             ],
+                          ),
+                        ] else ...[
+                          Icon(
+                            Icons.upload_file,
+                            size: 48,
+                            color: AppTheme.textSecondary.withOpacity(0.6),
                           ),
                           const SizedBox(height: 16),
+                          Text(
+                            'Tap to upload animal image',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '🤖 AI will automatically detect the breed',
+                            style: AppTheme.labelMedium.copyWith(
+                              color: AppTheme.textSecondary.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                        // Show AI prediction status
+                        if (_isPredicting) ...[
+                          const SizedBox(height: 16),
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: Colors.green[200]!),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.email, size: 16, color: Colors.green),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _currentUserEmail!,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.badge, size: 16, color: Colors.green),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'ID: ${_currentUserId?.substring(0, 8)}...',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning, color: Colors.red, size: 28),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Please sign in to register cattle',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  const SizedBox(height: 25),
-
-                  // Image Upload Section
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.photo_camera,
-                              color: _isPredictingBreed ? Colors.blue : const Color(0xFF43A047),
-                              size: 28,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              _isPredictingBreed ? 'AI is analyzing...' : 'Upload Animal Image',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: _isPredictingBreed ? Colors.blue : Colors.grey[800],
-                              ),
-                            ),
-                            if (_isPredictingBreed) ...[
-                              const SizedBox(width: 12),
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(
-                                color: _selectedImage != null || _selectedImageWeb != null
-                                    ? Colors.green[300]!
-                                    : Colors.grey[300]!,
-                                width: 2,
-                              ),
-                              color: _selectedImage != null || _selectedImageWeb != null
-                                  ? Colors.green[50]
-                                  : Colors.grey[50],
-                            ),
-                            child: _selectedImage != null || _selectedImageWeb != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(13),
-                                    child: kIsWeb && _selectedImageWeb != null
-                                        ? FutureBuilder<Uint8List>(
-                                            future: _selectedImageWeb!.readAsBytes(),
-                                            builder: (context, snapshot) {
-                                              if (snapshot.hasData) {
-                                                return Stack(
-                                                  children: [
-                                                    Image.memory(
-                                                      snapshot.data!,
-                                                      width: double.infinity,
-                                                      height: 200,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                    Positioned(
-                                                      top: 8,
-                                                      right: 8,
-                                                      child: Container(
-                                                        padding: const EdgeInsets.all(8),
-                                                        decoration: const BoxDecoration(
-                                                          color: Colors.green,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                        child: const Icon(
-                                                          Icons.check,
-                                                          color: Colors.white,
-                                                          size: 16,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              }
-                                              return const Center(child: CircularProgressIndicator());
-                                            },
-                                          )
-                                        : _selectedImage != null
-                                            ? Stack(
-                                                children: [
-                                                  Image.file(
-                                                    _selectedImage!,
-                                                    width: double.infinity,
-                                                    height: 200,
-                                                    fit: BoxFit.cover,
-                                                  ),
-                                                  Positioned(
-                                                    top: 8,
-                                                    right: 8,
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(8),
-                                                      decoration: const BoxDecoration(
-                                                        color: Colors.green,
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons.check,
-                                                        color: Colors.white,
-                                                        size: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            : Container()
-                                  )
-                                : const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo,
-                                        size: 48,
-                                        color: Colors.grey,
-                                      ),
-                                      SizedBox(height: 12),
-                                      Text(
-                                        'Tap to upload animal image',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'AI will automatically detect the breed',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        if (_isPredictingBreed)
-                          Container(
-                            margin: const EdgeInsets.only(top: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue[200]!),
+                              color: AppTheme.primaryGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.smart_toy, color: Colors.blue),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'AI is analyzing your image to detect the breed...',
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '🤖 AI is analyzing breed...',
+                                  style: AppTheme.labelMedium.copyWith(
+                                    color: AppTheme.primaryGreen,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 25),
-
-                  // Breed Input Section
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Breed Selection - Dropdown Style
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Breed Name',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.pets,
-                              color: _breedController.text.isNotEmpty ? Colors.green : const Color(0xFF43A047),
-                              size: 28,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Breed Information',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_breedController.text.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[100],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  'Entered',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      ),
+                      child: _isLoadingBreeds
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
                                   ),
                                 ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Loading breeds...',
+                                  style: TextStyle(color: AppTheme.textSecondary),
+                                ),
+                              ],
+                            ),
+                          )
+                        : DropdownButtonFormField<String>(
+                            value: _selectedBreed,
+                            hint: Text(
+                              _isPredicting 
+                                ? '🤖 AI is predicting breed...'
+                                : 'Select breed (e.g., MURRAH, GIR)',
+                              style: TextStyle(
+                                color: _isPredicting 
+                                  ? AppTheme.primaryGreen
+                                  : AppTheme.textSecondary.withOpacity(0.6)
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        TextFormField(
-                          controller: _breedController,
-                          enabled: !_isPredictingBreed,
-                          decoration: InputDecoration(
-                            labelText: 'Breed Name',
-                            hintText: _isPredictingBreed 
-                                ? '🤖 AI is predicting...' 
-                                : 'Enter or let AI predict the breed',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-                            ),
-                            filled: true,
-                            fillColor: _isPredictingBreed 
-                                ? Colors.blue[50] 
-                                : _breedController.text.isNotEmpty 
-                                    ? Colors.green[50] 
-                                    : Colors.grey[50],
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: _isPredictingBreed ? Colors.blue : const Color(0xFF43A047),
-                            ),
-                            suffixIcon: _isPredictingBreed 
+                            style: const TextStyle(color: AppTheme.textPrimary),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              suffixIcon: _isPredicting 
                                 ? const Padding(
                                     padding: EdgeInsets.all(12.0),
                                     child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+                                      ),
                                     ),
                                   )
                                 : null,
+                            ),
+                            dropdownColor: AppTheme.backgroundDark,
+                            items: _availableBreeds.map((breed) {
+                              return DropdownMenuItem<String>(
+                                value: breed,
+                                child: Text(
+                                  breed,
+                                  style: const TextStyle(color: AppTheme.textPrimary),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: _isPredicting ? null : _onBreedChanged,
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter the breed';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
                     ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // Gender Selection Section
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Color Input - Demo Style
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Color',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _colorController,
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'e.g., Black, White, Brown',
+                        hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.6)),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.primaryGreen),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Gender Selection - Dynamic based on breed
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Gender',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_availableGenders.isEmpty && _selectedBreed != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.textSecondary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
                           children: [
-                            Icon(
-                              Icons.wc,
-                              color: _selectedGender != null ? Colors.green : const Color(0xFF43A047),
-                              size: 28,
+                            SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+                              ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Text(
-                              'Select Gender',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
+                              'Loading available genders...',
+                              style: TextStyle(color: AppTheme.textSecondary),
                             ),
-                            const Spacer(),
-                            if (_selectedGender != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[100],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  'Selected',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: ['Male', 'Female'].map((gender) {
-                            final isSelected = _selectedGender == gender;
-                            return Expanded(
+                      )
+                    else if (_availableGenders.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.textSecondary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Please select a breed first',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: _availableGenders.map((gender) {
+                          final index = _availableGenders.indexOf(gender);
+                          return Expanded(
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                right: index < _availableGenders.length - 1 ? 16 : 0
+                              ),
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
                                     _selectedGender = gender;
                                   });
                                 },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin: EdgeInsets.only(
-                                    right: gender == 'Male' ? 10 : 0,
-                                    left: gender == 'Female' ? 10 : 0,
-                                  ),
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFF43A047) : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(15),
+                                    color: _selectedGender == gender
+                                        ? AppTheme.primaryGreen.withOpacity(0.2)
+                                        : AppTheme.textSecondary.withOpacity(0.1),
                                     border: Border.all(
-                                      color: isSelected ? const Color(0xFF43A047) : Colors.grey[300]!,
-                                      width: 2,
+                                      color: _selectedGender == gender
+                                          ? AppTheme.primaryGreen
+                                          : Colors.transparent,
                                     ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
                                         gender == 'Male' ? Icons.male : Icons.female,
-                                        color: isSelected ? Colors.white : Colors.grey[600],
-                                        size: 24,
+                                        color: _selectedGender == gender
+                                            ? AppTheme.primaryGreen
+                                            : gender == 'Male' ? Colors.blue[400] : Colors.pink[400],
+                                        size: 20,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         gender,
-                                        style: TextStyle(
-                                          color: isSelected ? Colors.white : Colors.grey[700],
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                        style: AppTheme.bodyMedium.copyWith(
+                                          color: _selectedGender == gender
+                                              ? AppTheme.primaryGreen
+                                              : AppTheme.textPrimary,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // Additional Info Fields Section
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.info_outline,
-                              color: Color(0xFF43A047),
-                              size: 28,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Additional Information',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
+                          );
+                        }).toList(),
+                      ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Height and Weight - Demo Style (Side by side)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Height (cm)',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _heightController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: AppTheme.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: '210',
+                              hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.6)),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Height Field
-                        TextFormField(
-                          controller: _heightController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Height (cm)',
-                            hintText: 'Enter height in centimeters',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            prefixIcon: const Icon(Icons.height, color: Color(0xFF43A047)),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter height';
-                            }
-                            final height = double.tryParse(value);
-                            if (height == null || height <= 0) {
-                              return 'Please enter a valid height';
-                            }
-                            return null;
-                          },
-                        ),
-                        
-                        const SizedBox(height: 20),
-
-                        // Color Field
-                        TextFormField(
-                          controller: _colorController,
-                          decoration: InputDecoration(
-                            labelText: 'Color',
-                            hintText: 'Enter animal color',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            prefixIcon: const Icon(Icons.palette, color: Color(0xFF43A047)),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter color';
-                            }
-                            return null;
-                          },
-                        ),
-                        
-                        const SizedBox(height: 20),
-
-                        // Weight Field
-                        TextFormField(
-                          controller: _weightController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Weight (kg)',
-                            hintText: 'Enter weight in kilograms',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            prefixIcon: const Icon(Icons.monitor_weight, color: Color(0xFF43A047)),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter weight';
-                            }
-                            final weight = double.tryParse(value);
-                            if (weight == null || weight <= 0) {
-                              return 'Please enter a valid weight';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Register Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      child: _isLoading
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[400],
-                                borderRadius: BorderRadius.circular(15),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppTheme.primaryGreen),
                               ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Weight (kg)',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _weightController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: AppTheme.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: '750',
+                              hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.6)),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppTheme.primaryGreen),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Test Connection Button - Debug Style
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final registrationController = ref.read(registrationControllerProvider);
+                        final result = await registrationController.testConnection();
+                        
+                        // Show result in a dialog
+                        if (mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: AppTheme.backgroundDark,
+                              title: const Text(
+                                'Connection Test',
+                                style: TextStyle(color: AppTheme.textPrimary),
+                              ),
+                              content: SingleChildScrollView(
+                                child: Text(
+                                  result,
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
                                   ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Registering Animal...',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ElevatedButton(
-                              onPressed: _currentUserEmail != null ? _registerAnimal : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _currentUserEmail != null
-                                    ? const Color(0xFF43A047)
-                                    : Colors.grey[400],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
                                 ),
-                                elevation: _currentUserEmail != null ? 8 : 2,
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _currentUserEmail != null 
-                                        ? Icons.app_registration 
-                                        : Icons.login,
-                                    size: 24,
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text(
+                                    'Close',
+                                    style: TextStyle(color: AppTheme.primaryGreen),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _currentUserEmail != null
-                                        ? 'Register Animal'
-                                        : 'Sign In Required',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
+                          );
+                        }
+                      } catch (e) {
+                        _showErrorSnackBar('Test failed: ${e.toString()}');
+                      }
+                    },
+                    icon: const Icon(Icons.wifi_tethering, size: 20),
+                    label: const Text('Test Database Connection'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryGreen,
+                      side: const BorderSide(color: AppTheme.primaryGreen),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 30),
-                ],
-              ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Register Animal Button - Demo Style
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _registerAnimal,
+                    icon: _isLoading 
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save, size: 24),
+                    label: Text(
+                      _isLoading ? 'Registering...' : 'Register Animal',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+              ],
             ),
           ),
         ),

@@ -21,9 +21,9 @@ class CattleRegistrationModel {
     return {
       'breed': breed,
       'gender': gender,
-      'height': height,
+      'height': height.round(), // Convert to integer for database
       'color': color,
-      'weight': weight,
+      'weight': weight.round(), // Convert to integer for database
       'user-id': userId,
       'breed_id': breedId,
     };

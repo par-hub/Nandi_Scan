@@ -10,14 +10,13 @@ final apiServiceProvider = Provider((ref) => ApiService());
 /// Dynamic API configuration that works across devices
 class ApiConfig {
   // Environment-based configuration
-  static const String _defaultHost = '127.0.0.1';
   static const int _defaultPort = 8001;
   static const Duration requestTimeout = Duration(seconds: 30);
   
   // Get the base URL dynamically
   static String get baseUrl {
     // Try to get from environment variables first
-    final host = Platform.environment['CATTLE_API_HOST'] ?? _defaultHost;
+    final host = Platform.environment['CATTLE_API_HOST'] ?? '10.12.81.152';  // Current network IP
     final portStr = Platform.environment['CATTLE_API_PORT'] ?? _defaultPort.toString();
     final port = int.tryParse(portStr) ?? _defaultPort;
     
@@ -26,13 +25,13 @@ class ApiConfig {
   
   // Alternative URLs to try if main one fails
   static List<String> get fallbackUrls => [
+    'http://10.12.81.152:8001',  // Current network IP
+    'http://localhost:8001',  // Localhost for web apps
     'http://127.0.0.1:8001',  // Local development (main)
+    'http://10.133.117.67:8001',  // Previous network IP
     'http://127.0.0.1:8000',  // Local development (simple)
-    'http://localhost:8001',  // Localhost alternative
     'http://localhost:8000',  // Localhost alternative
     'http://0.0.0.0:8001',    // Network accessible
-    // Add your network IP here if known (example):
-    // 'http://192.168.1.100:8001',
   ];
   
   // Production/deployment URLs (can be set via environment)
@@ -52,31 +51,42 @@ class ServerDiscovery {
   
   /// Discover available server endpoints
   static Future<String?> discoverServer() async {
+    print('🔍 Starting server discovery...');
+    
     // First try production URL if available
     if (ApiConfig.productionUrl != null) {
+      print('🧪 Trying production URL: ${ApiConfig.productionUrl}');
       if (await _testEndpoint(ApiConfig.productionUrl!)) {
+        print('✅ Production URL working');
         return ApiConfig.productionUrl!;
       }
     }
     
     // Then try the configured base URL
+    print('🧪 Trying configured URL: ${ApiConfig.baseUrl}');
     if (await _testEndpoint(ApiConfig.baseUrl)) {
+      print('✅ Configured URL working: ${ApiConfig.baseUrl}');
       return ApiConfig.baseUrl;
     }
     
     // Finally try fallback URLs
+    print('🧪 Trying fallback URLs...');
     for (String url in ApiConfig.fallbackUrls) {
+      print('🧪 Testing: $url');
       if (await _testEndpoint(url)) {
+        print('✅ Fallback URL working: $url');
         return url;
       }
     }
     
+    print('❌ No working server found');
     return null; // No server found
   }
   
   /// Test if an endpoint is available
   static Future<bool> _testEndpoint(String baseUrl) async {
     try {
+      print('🔍 Testing endpoint: $baseUrl/health');
       final response = await _client
           .get(
             Uri.parse('$baseUrl/health'),
@@ -84,14 +94,16 @@ class ServerDiscovery {
           )
           .timeout(const Duration(seconds: 3));
       
+      print('📊 Test response for $baseUrl: ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
+      print('❌ Test failed for $baseUrl: $e');
       return false;
     }
   }
 }
 
-/// Prediction result model
+/// Enhanced prediction result model (keeping existing structure)
 class PredictionResult {
   final String status;
   final String timestamp;
@@ -293,8 +305,10 @@ class ApiService {
   /// Health check endpoint with server discovery
   Future<HealthCheckResult> healthCheck() async {
     try {
+      print('🔍 Starting health check...');
       final baseUrl = await _getActiveBaseUrl();
       if (baseUrl == null) {
+        print('❌ No server URL found during discovery');
         return HealthCheckResult(
           status: 'error',
           modelLoaded: false,
@@ -304,18 +318,28 @@ class ApiService {
         );
       }
 
+      print('🌐 Using server URL: $baseUrl');
+      final healthUrl = '$baseUrl/health';
+      print('📡 Making request to: $healthUrl');
+
       final response = await _client
           .get(
-            Uri.parse('$baseUrl/health'),
+            Uri.parse(healthUrl),
             headers: {'Content-Type': 'application/json'},
           )
           .timeout(ApiConfig.requestTimeout);
 
+      print('📊 Response status: ${response.statusCode}');
+      print('📊 Response body: ${response.body}');
+
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        return HealthCheckResult.fromJson(data);
+        final result = HealthCheckResult.fromJson(data);
+        print('✅ Health check success: ${result.status}, Model loaded: ${result.modelLoaded}');
+        return result;
       } else {
+        print('❌ Health check failed with status: ${response.statusCode}');
         return HealthCheckResult(
           status: 'error',
           modelLoaded: false,
@@ -325,6 +349,7 @@ class ApiService {
         );
       }
     } catch (e) {
+      print('❌ Health check exception: $e');
       // Reset the active URL so it will retry discovery next time
       _activeBaseUrl = null;
       return HealthCheckResult(
@@ -412,7 +437,7 @@ class ApiService {
       
       print('📄 Using content type: $contentType');
       
-      // Create multipart body manually for web compatibility
+      // Create multipart body manually for cross-platform compatibility
       final filename = imageFile.name.isNotEmpty ? imageFile.name : 'image.$extension';
       final body = <int>[];
       

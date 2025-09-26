@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../services/api_service.dart';
+import '../../../services/api_service_fixed.dart';
 
 /// Breed prediction state
 class BreedPredictionState {
@@ -54,22 +54,16 @@ class BreedPredictionController extends Notifier<BreedPredictionState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final isConnected = await _apiService.testConnection();
+      // Test connection using health check
+      final healthCheck = await _apiService.healthCheck();
+      final isConnected = healthCheck['status'] == 'healthy';
+      final modelLoaded = healthCheck['model_loaded'] ?? false;
       
-      if (isConnected) {
-        final healthCheck = await _apiService.healthCheck();
-        state = state.copyWith(
-          isLoading: false,
-          isConnected: healthCheck.isHealthy,
-          error: healthCheck.isHealthy ? null : healthCheck.error,
-        );
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          isConnected: false,
-          error: 'Cannot connect to prediction server',
-        );
-      }
+      state = state.copyWith(
+        isLoading: false,
+        isConnected: isConnected && modelLoaded,
+        error: isConnected && modelLoaded ? null : 'AI service not available - model not loaded',
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -142,7 +136,7 @@ class BreedPredictionController extends Notifier<BreedPredictionState> {
       // Make prediction
       final result = await _apiService.predictBreed(imageFile);
 
-      if (result.isSuccess) {
+      if (result.status == 'success') {
         // Add to history
         final updatedHistory = [...state.predictionHistory, result];
         
@@ -183,73 +177,10 @@ class BreedPredictionController extends Notifier<BreedPredictionState> {
   /// Get supported breeds list
   Future<List<String>> getSupportedBreeds() async {
     try {
-      return await _apiService.getSupportedBreeds();
+      return await _apiService.getBreeds();
     } catch (e) {
       print('Error getting supported breeds: $e');
       return [];
-    }
-  }
-
-  /// Batch prediction for multiple images
-  Future<void> predictBatch(List<XFile> imageFiles) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-
-      if (imageFiles.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'No images selected',
-        );
-        return;
-      }
-
-      if (imageFiles.length > 10) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Maximum 10 images allowed',
-        );
-        return;
-      }
-
-      // Check connection
-      if (!state.isConnected) {
-        await _checkConnection();
-        if (!state.isConnected) {
-          state = state.copyWith(
-            isLoading: false,
-            error: 'Not connected to prediction server',
-          );
-          return;
-        }
-      }
-
-      // Make batch prediction
-      final results = await _apiService.predictBatch(imageFiles);
-
-      // Add all successful results to history
-      final successfulResults = results.where((r) => r.isSuccess).toList();
-      final updatedHistory = [...state.predictionHistory, ...successfulResults];
-
-      // Set last prediction to the first successful one
-      final lastPrediction = successfulResults.isNotEmpty ? successfulResults.first : null;
-
-      // Check for errors
-      final failedResults = results.where((r) => !r.isSuccess).toList();
-      final errorMessage = failedResults.isNotEmpty 
-          ? 'Some predictions failed: ${failedResults.map((r) => r.error).join(', ')}'
-          : null;
-
-      state = state.copyWith(
-        isLoading: false,
-        lastPrediction: lastPrediction,
-        predictionHistory: updatedHistory,
-        error: errorMessage,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Batch prediction error: ${e.toString()}',
-      );
     }
   }
 }

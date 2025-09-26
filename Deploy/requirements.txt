@@ -1,0 +1,23 @@
+# Cattle Breed Classification API - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core ML Framework
+torch>=2.0.0
+torchvision>=0.15.0
+
+# API Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# HTTP Client (for testing)
+requests>=2.31.0
+
+# Development Tools (optional)
+python-multipart>=0.0.6  # For file uploads
+
+# Optional: For GPU support (uncomment if you have CUDA)
+# torch>=2.0.0+cu118
+# torchvision>=0.15.0+cu118

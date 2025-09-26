@@ -2,14 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cnn/features/health/repository/health_repo.dart';
 import 'package:cnn/features/health/models/health_model.dart';
 
-final healthRepoProvider = Provider<HealthRepo>((ref) {
-  return HealthRepo();
-});
+final healthRepoProvider = Provider((ref) => HealthRepo());
 
-final healthControllerProvider = Provider<HealthController>((ref) {
-  return HealthController(
-    healthRepo: ref.read(healthRepoProvider),
-  );
+final healthControllerProvider = Provider((ref) {
+  return HealthController(healthRepo: ref.watch(healthRepoProvider));
 });
 
 class HealthController {

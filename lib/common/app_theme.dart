@@ -1,37 +1,81 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Modern color palette for farming app
-  static const Color primaryGreen = Color(0xFF2E7D32);
-  static const Color lightGreen = Color(0xFF4CAF50);
-  static const Color accentTeal = Color(0xFF00ACC1);
-  static const Color lightTeal = Color(0xFF26C6DA);
-  static const Color darkGreen = Color(0xFF1B5E20);
-  static const Color backgroundLight = Color(0xFFF1F8E9);
-  static const Color cardBackground = Color(0xFFFFFFFF);
-  static const Color textPrimary = Color(0xFF2E2E2E);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color error = Color(0xFFE53935);
+  // Dark theme color palette inspired by demo.html
+  static const Color primaryGreen = Color(0xFF34D399); // Emerald 400 from demo
+  static const Color lightGreen = Color(0xFF10B981); // Emerald 500
+  static const Color accentTeal = Color(0xFF00D4AA);
+  static const Color lightTeal = Color(0xFF5EEAD4);
+  static const Color darkGreen = Color(0xFF065F46);
   
-  // Gradients
+  // Dark theme backgrounds
+  static const Color backgroundDark = Color(0xFF000000); // Pure black like demo
+  static const Color backgroundGradientStart = Color(0xFF1a2a2a); // Dark gradient start
+  static const Color backgroundGradientEnd = Color(0xFF101818); // Dark gradient end
+  static const Color cardBackground = Color(0xFF1F2937); // Dark gray for cards
+  static const Color glassmorphismBackground = Color(0x0DFFFFFF); // 5% white opacity
+  
+  // Text colors for dark theme
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFFD1D5DB);
+  static const Color textTertiary = Color(0xFF9CA3AF);
+  
+  // Status colors
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  
+  // Gradients for dark theme
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryGreen, lightGreen],
+    colors: [backgroundGradientStart, backgroundGradientEnd],
   );
   
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [accentTeal, lightTeal],
+    colors: [primaryGreen, lightGreen],
   );
   
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [backgroundLight, Color(0xFFE8F5E8)],
+    colors: [backgroundGradientStart, backgroundGradientEnd],
+  );
+
+  // Glassmorphism decoration for cards
+  static BoxDecoration get glassmorphismDecoration => BoxDecoration(
+    color: glassmorphismBackground,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: Colors.white.withOpacity(0.1),
+      width: 1,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  // Card decoration
+  static BoxDecoration get cardDecoration => BoxDecoration(
+    color: cardBackground,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: Colors.white.withOpacity(0.1),
+      width: 1,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.2),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
   );
 
   // Text Styles
@@ -81,65 +125,79 @@ class AppTheme {
     color: textSecondary,
   );
 
-  // Button Styles
-  static ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: primaryGreen,
-    foregroundColor: Colors.white,
-    elevation: 4,
-    shadowColor: primaryGreen.withOpacity(0.3),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    ),
-    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-  );
-  
-  static ButtonStyle secondaryButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: Colors.white,
-    foregroundColor: primaryGreen,
-    elevation: 2,
-    side: BorderSide(color: primaryGreen, width: 1.5),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    ),
-    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-  );
-
-  // Card Style
-  static BoxDecoration cardDecoration = BoxDecoration(
+  // Dark Card Style (removing old duplicates)
+  static BoxDecoration get darkCardDecoration => BoxDecoration(
     color: cardBackground,
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: Colors.white.withOpacity(0.1),
+      width: 1,
+    ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.08),
-        blurRadius: 20,
+        color: Colors.black.withOpacity(0.2),
+        blurRadius: 10,
         offset: const Offset(0, 4),
       ),
     ],
   );
   
-  // Input Decoration
-  static InputDecoration inputDecoration({
+  // Button Styles
+  static ButtonStyle get primaryButtonStyle => ElevatedButton.styleFrom(
+    backgroundColor: primaryGreen,
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+    elevation: 0,
+    shadowColor: Colors.transparent,
+  );
+  
+  static ButtonStyle get secondaryButtonStyle => OutlinedButton.styleFrom(
+    foregroundColor: primaryGreen,
+    side: const BorderSide(color: primaryGreen, width: 1),
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+  );
+
+  static ButtonStyle get glassmorphismButtonStyle => ElevatedButton.styleFrom(
+    backgroundColor: glassmorphismBackground,
+    foregroundColor: textPrimary,
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+    ),
+    elevation: 0,
+    shadowColor: Colors.transparent,
+  );
+  
+  // Form Input Decoration for dark theme
+  static InputDecoration darkInputDecoration({
     required String hintText,
     IconData? prefixIcon,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: bodyMedium,
+      hintStyle: bodyMedium.copyWith(color: textTertiary),
       prefixIcon: prefixIcon != null 
           ? Icon(prefixIcon, color: primaryGreen) 
           : null,
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: glassmorphismBackground,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -152,15 +210,28 @@ class AppTheme {
     );
   }
 
-  // Theme Data
+  // Input Decoration (keeping for backward compatibility)
+  static InputDecoration inputDecoration({
+    required String hintText,
+    IconData? prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    return darkInputDecoration(
+      hintText: hintText,
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  // Theme Data - Updated for dark theme
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryGreen,
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
       ),
-      scaffoldBackgroundColor: backgroundLight,
+      scaffoldBackgroundColor: backgroundDark,
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -169,11 +240,11 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: cardBackground,
-        elevation: 4,
-        // 0x1A = 10% opacity black
-        shadowColor: const Color(0x1A000000),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -181,19 +252,30 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: glassmorphismBackground,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        hintStyle: bodyMedium.copyWith(color: textTertiary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: primaryGreen, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: error, width: 2),
+        ),
+      ),
+      drawerTheme: DrawerThemeData(
+        backgroundColor: cardBackground,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
         ),
       ),
     );

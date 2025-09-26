@@ -101,3 +101,16 @@ final authControllerProvider = Provider<AuthController>((ref) {
   final repo = ref.watch(authRepo);
   return AuthController(repo);
 });
+
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return Supabase.instance.client.auth.onAuthStateChange;
+});
+
+final userProvider = Provider<User?>((ref) {
+  final authState = ref.watch(authStateProvider);
+  return authState.when(
+    data: (state) => state.session?.user,
+    loading: () => Supabase.instance.client.auth.currentUser,
+    error: (_, __) => null,
+  );
+});

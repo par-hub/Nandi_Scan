@@ -216,9 +216,9 @@ Copy this entire message for debugging.
       
       // Create entry in user_defined_features table
       userDefinedFeatures = {
-        'height': cattle.height,
+        'height': cattle.height.round(), // Convert to integer for database
         'color': cattle.color,
-        'weight': cattle.weight,
+        'weight': cattle.weight.round(), // Convert to integer for database
         'user-id': userId,
         'breed_id': breedInfo?.id, // This can be null if table doesn't exist
         'gender': cattle.gender,

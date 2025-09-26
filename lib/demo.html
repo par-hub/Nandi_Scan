@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cattle Herd Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bg-gradient-custom {
+            background: linear-gradient(180deg, #1a2a2a 0%, #101818 100%);
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .nav-item.active svg, .drawer-link.active svg {
+            color: #34D399; /* Emerald 400 */
+        }
+        .nav-item.active span, .drawer-link.active span {
+            color: #34D399;
+        }
+        .hide {
+            display: none;
+        }
+        /* Custom scrollbar for a sleeker look */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a2a2a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #34D399;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10B981;
+        }
+        .form-input {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: white;
+            transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #34D399;
+            box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.5);
+        }
+        .drawer {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .drawer.open {
+            transform: translateX(0);
+        }
+        .overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .toggle-switch {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .toggle-switch.enabled {
+            background-color: #34D399;
+        }
+        .toggle-knob {
+            transform: translateX(0);
+            transition: transform 0.2s ease-in-out;
+        }
+        .toggle-switch.enabled .toggle-knob {
+            transform: translateX(1.25rem);
+        }
+    </style>
+</head>
+<body class="bg-black">
+    <div class="w-full max-w-md mx-auto h-screen relative overflow-hidden">
+        
+        <!-- Side Drawer -->
+        <div id="drawer-overlay" class="overlay fixed inset-0 bg-black/50 z-40"></div>
+        <aside id="side-drawer" class="drawer fixed top-0 left-0 h-full w-3/4 max-w-xs bg-gradient-custom shadow-2xl z-50 p-6 flex flex-col text-white">
+            <div class="flex items-center space-x-3 mb-8">
+                <img src="https://placehold.co/48x48/10B981/FFFFFF?text=A" alt="User Avatar" class="rounded-full border-2 border-emerald-400">
+                <div>
+                    <h2 class="font-bold text-lg">Moksh Soni</h2>
+                    <p class="text-xs text-gray-400">moksh1249@gmail.com</p>
+                </div>
+            </div>
+            <nav class="flex-grow space-y-2">
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors active" data-page="dashboard">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                    <span class="font-medium">Home</span>
+                </a>
+                 <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="my-herd">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    <span class="font-medium">My Herd</span>
+                </a>
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="register">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    <span class="font-medium">Register Animal</span>
+                </a>
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="breed-specs">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                    <span class="font-medium">Breed Specifications</span>
+                </a>
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="health-analysis">
+                    <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                    <span class="font-medium">Health Records</span>
+                </a>
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="profile">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                    <span class="font-medium">Profile</span>
+                </a>
+                <a href="#" class="drawer-link flex items-center space-x-4 p-3 rounded-lg hover:bg-white/5 transition-colors" data-page="settings">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="font-medium">Settings</span>
+                </a>
+            </nav>
+            <div class="mt-6">
+                <button class="w-full flex items-center justify-center space-x-2 py-3 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main App Body -->
+        <div id="app-body" class="w-full h-full flex flex-col bg-gradient-custom shadow-2xl transition-transform duration-300">
+            <!-- Header -->
+            <header id="main-header" class="p-4 flex justify-between items-center text-white z-10">
+                <button id="open-drawer-btn">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div class="flex items-center space-x-3">
+                    <p class="font-semibold">Dashboard</p>
+                </div>
+                <button class="relative">
+                    <i data-lucide="bell" class="w-6 h-6"></i>
+                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#101818]"></span>
+                </button>
+            </header>
+            
+            <!-- Main Content -->
+            <main class="flex-grow overflow-y-auto p-4 text-white">
+
+                <!-- Page: Dashboard -->
+                <div id="page-dashboard">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="glassmorphism p-4 rounded-xl">
+                            <i data-lucide="layout-grid" class="w-8 h-8 text-emerald-400 mb-2"></i>
+                            <p class="text-3xl font-bold">12</p>
+                            <p class="text-gray-400 text-sm">Total Cattle</p>
+                        </div>
+                        <div class="glassmorphism p-4 rounded-xl">
+                            <i data-lucide="heart-pulse" class="w-8 h-8 text-amber-400 mb-2"></i>
+                            <p class="text-3xl font-bold">3</p>
+                            <p class="text-gray-400 text-sm">Health Alerts</p>
+                        </div>
+                    </div>
+                    
+                    <div class="glassmorphism rounded-xl p-4 mb-6 text-center">
+                        <h2 class="font-semibold text-lg mb-3">AI Analysis</h2>
+                        <p class="text-gray-400 text-sm mb-4">Upload an image for instant breed detection or health analysis.</p>
+                        <button class="w-full bg-emerald-500/20 border border-emerald-400 text-emerald-400 font-bold py-3 px-4 rounded-lg flex items-center justify-center space-x-2">
+                             <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                            <span>Upload Image</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="font-semibold text-lg">Recent Activity</h2>
+                            <a href="#" class="text-emerald-400 text-sm font-medium">View All</a>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-4 glassmorphism p-3 rounded-lg">
+                                <div class="bg-blue-500/20 p-2 rounded-full">
+                                    <i data-lucide="syringe" class="w-5 h-5 text-blue-400"></i>
+                                </div>
+                                <div class="flex-grow">
+                                    <p class="font-medium">Vaccination for #8-NAGPURI</p>
+                                    <p class="text-xs text-gray-400">Today, 9:45 AM</p>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-300">Done</span>
+                            </div>
+                             <div class="flex items-center space-x-4 glassmorphism p-3 rounded-lg">
+                                <div class="bg-green-500/20 p-2 rounded-full">
+                                    <i data-lucide="plus-circle" class="w-5 h-5 text-green-400"></i>
+                                </div>
+                                <div class="flex-grow">
+                                    <p class="font-medium">New cattle registered: #12-Gir</p>
+                                    <p class="text-xs text-gray-400">Yesterday, 3:20 PM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 glassmorphism p-3 rounded-lg">
+                                <div class="bg-red-500/20 p-2 rounded-full">
+                                    <i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>
+                                </div>
+                                <div class="flex-grow">
+                                    <p class="font-medium">Health alert for #6-Gir</p>
+                                    <p class="text-xs text-gray-400">2 days ago</p>
+                                </div>
+                                 <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: My Herd -->
+                <div id="page-my-herd" class="hide">
+                    <div class="mb-4">
+                        <h1 class="text-2xl font-bold mb-4">My Herd</h1>
+                        <div class="relative">
+                            <input type="text" placeholder="Search by name or ID..." class="w-full form-input pl-10">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="glassmorphism rounded-xl p-4 flex items-center space-x-4">
+                            <img src="https://placehold.co/64x64/333/FFF?text=🐮" alt="Cattle" class="w-16 h-16 rounded-lg object-cover">
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-bold text-lg">#6 - Gir</p>
+                                        <p class="text-sm text-gray-300">Female</p>
+                                    </div>
+                                    <button class="p-1 text-gray-400"><i data-lucide="camera" class="w-5 h-5"></i></button>
+                                </div>
+                                <div class="flex text-xs space-x-4 mt-2 text-gray-400">
+                                    <span><span class="font-semibold text-white">213.3</span> ft</span>
+                                    <span><span class="font-semibold text-white">765</span> kg</span>
+                                    <span><span class="font-semibold text-white">Black</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glassmorphism rounded-xl p-4 flex items-center space-x-4">
+                            <img src="https://placehold.co/64x64/444/FFF?text=🐃" alt="Cattle" class="w-16 h-16 rounded-lg object-cover">
+                            <div class="flex-grow">
+                                 <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-bold text-lg">#7 - Surti</p>
+                                        <p class="text-sm text-gray-300">Male</p>
+                                    </div>
+                                    <button class="p-1 text-gray-400"><i data-lucide="camera" class="w-5 h-5"></i></button>
+                                </div>
+                                <div class="flex text-xs space-x-4 mt-2 text-gray-400">
+                                    <span><span class="font-semibold text-white">403.5</span> ft</span>
+                                    <span><span class="font-semibold text-white">3456</span> kg</span>
+                                    <span><span class="font-semibold text-white">Brown</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Page: Register Animal -->
+                <div id="page-register" class="hide">
+                     <h1 class="text-2xl font-bold mb-6 text-center">Register New Cattle</h1>
+                     <div class="space-y-6">
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md cursor-pointer">
+                            <div class="space-y-1 text-center">
+                                <i data-lucide="upload-cloud" class="mx-auto h-12 w-12 text-gray-400"></i>
+                                <p class="text-sm text-gray-400">
+                                    <span class="font-medium text-emerald-400">Tap to upload animal image</span>
+                                </p>
+                                <p class="text-xs text-gray-500">AI will automatically detect the breed</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="breed-name" class="block text-sm font-medium text-gray-300 mb-2">Breed Name</label>
+                            <input type="text" id="breed-name" class="w-full form-input" placeholder="e.g., Murrah">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Select Gender</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button class="flex items-center justify-center space-x-2 py-3 rounded-lg bg-gray-700 border border-transparent transition-all">
+                                    <i data-lucide="male-symbol" class="w-5 h-5 text-blue-400"></i>
+                                    <span>Male</span>
+                                </button>
+                                <button class="flex items-center justify-center space-x-2 py-3 rounded-lg bg-emerald-500/20 border-emerald-400 border transition-all">
+                                    <i data-lucide="female-symbol" class="w-5 h-5 text-pink-400"></i>
+                                    <span>Female</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="height" class="block text-sm font-medium text-gray-300 mb-2">Height (cm)</label>
+                                <input type="number" id="height" class="w-full form-input" placeholder="210">
+                            </div>
+                            <div>
+                                <label for="weight" class="block text-sm font-medium text-gray-300 mb-2">Weight (kg)</label>
+                                <input type="number" id="weight" class="w-full form-input" placeholder="750">
+                            </div>
+                        </div>
+                        <button class="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center space-x-2 text-lg">
+                            <i data-lucide="save" class="w-6 h-6"></i>
+                            <span>Register Animal</span>
+                        </button>
+                     </div>
+                </div>
+
+                <!-- Page: Health Analysis -->
+                <div id="page-health-analysis" class="hide">
+                    <h1 class="text-2xl font-bold mb-6 text-center">Health Analysis</h1>
+                    <div class="space-y-6">
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md cursor-pointer">
+                            <div class="space-y-1 text-center">
+                                <i data-lucide="upload-cloud" class="mx-auto h-12 w-12 text-gray-400"></i>
+                                <p class="text-sm text-gray-400"><span class="font-medium text-emerald-400">Tap to upload for AI prediction</span></p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="ha-breed-name" class="block text-sm font-medium text-gray-300 mb-2">Breed Name</label>
+                            <input type="text" id="ha-breed-name" class="w-full form-input" placeholder="e.g., Murrah">
+                        </div>
+                        <div>
+                           <label for="ha-gender" class="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                           <select id="ha-gender" class="w-full form-input appearance-none">
+                                <option>Female</option>
+                                <option>Male</option>
+                           </select>
+                        </div>
+                        <button class="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center space-x-2 text-lg">
+                            <i data-lucide="shield-check" class="w-6 h-6"></i>
+                            <span>Check Health</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Page: Breed Specs -->
+                 <div id="page-breed-specs" class="hide">
+                    <h1 class="text-2xl font-bold mb-6 text-center">Breed Specifications</h1>
+                    <div class="space-y-6">
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md cursor-pointer">
+                            <div class="space-y-1 text-center">
+                                <i data-lucide="upload-cloud" class="mx-auto h-12 w-12 text-gray-400"></i>
+                                <p class="text-sm text-gray-400"><span class="font-medium text-emerald-400">Tap to upload for AI prediction</span></p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="bs-breed-name" class="block text-sm font-medium text-gray-300 mb-2">Breed Name</label>
+                            <input type="text" id="bs-breed-name" class="w-full form-input" placeholder="e.g., Gir, Surti">
+                        </div>
+                        <div>
+                           <label for="bs-gender" class="block text-sm font-medium text-gray-300 mb-2">Gender (Optional)</label>
+                           <select id="bs-gender" class="w-full form-input appearance-none">
+                                <option>Any</option>
+                                <option>Female</option>
+                                <option>Male</option>
+                           </select>
+                        </div>
+                        <button class="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center space-x-2 text-lg">
+                            <i data-lucide="search" class="w-6 h-6"></i>
+                            <span>Find Details</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Page: Settings -->
+                <div id="page-settings" class="hide">
+                    <h1 class="text-2xl font-bold mb-6 text-center">Settings</h1>
+                    <div class="space-y-8">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4 text-emerald-400">Server Configuration</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="server-ip" class="block text-sm font-medium text-gray-300 mb-2">Server IP Address</label>
+                                    <input type="text" id="server-ip" class="w-full form-input" value="172.16.0.2">
+                                </div>
+                                <div>
+                                    <label for="server-port" class="block text-sm font-medium text-gray-300 mb-2">Server Port</label>
+                                    <input type="number" id="server-port" class="w-full form-input" value="8001">
+                                </div>
+                                <div class="flex space-x-4">
+                                    <button class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg">Save</button>
+                                    <button class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg">Test</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4 text-emerald-400">App Settings</h3>
+                            <div class="glassmorphism rounded-lg divide-y divide-gray-700">
+                                <div class="flex items-center justify-between p-4">
+                                    <span class="font-medium">Enable Notifications</span>
+                                    <button class="toggle-switch enabled w-11 h-6 rounded-full flex items-center p-1">
+                                        <span class="toggle-knob w-4 h-4 bg-white rounded-full"></span>
+                                    </button>
+                                </div>
+                                 <div class="flex items-center justify-between p-4">
+                                    <span class="font-medium">Theme</span>
+                                    <span class="text-gray-400">Dark</span>
+                                </div>
+                                <div class="flex items-center justify-between p-4">
+                                    <span class="font-medium">About</span>
+                                    <span class="text-gray-400">Version 1.0.0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Profile -->
+                <div id="page-profile" class="hide">
+                    <h1 class="text-2xl font-bold mb-6 text-center">My Profile</h1>
+                    <div class="flex flex-col items-center mb-8">
+                        <img src="https://placehold.co/96x96/10B981/FFFFFF?text=A" alt="User Avatar" class="rounded-full border-4 border-emerald-400 mb-3">
+                        <h2 class="text-xl font-semibold">Moksh Soni</h2>
+                        <p class="text-gray-400">moksh1249@gmail.com</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider px-2">Account</h3>
+                        <div class="glassmorphism rounded-lg divide-y divide-gray-700">
+                            <a href="#" class="flex items-center justify-between p-4 w-full text-left">
+                                <div class="flex items-center space-x-4">
+                                    <i data-lucide="user-cog" class="w-5 h-5 text-emerald-400"></i>
+                                    <span>Edit Profile</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-500"></i>
+                            </a>
+                            <a href="#" class="flex items-center justify-between p-4 w-full text-left">
+                               <div class="flex items-center space-x-4">
+                                    <i data-lucide="bell" class="w-5 h-5 text-emerald-400"></i>
+                                    <span>Notifications</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-500"></i>
+                            </a>
+                            <a href="#" class="flex items-center justify-between p-4 w-full text-left">
+                                 <div class="flex items-center space-x-4">
+                                    <i data-lucide="lock" class="w-5 h-5 text-emerald-400"></i>
+                                    <span>Change Password</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-500"></i>
+                            </a>
+                        </div>
+                    </div>
+    
+                    <div class="mt-8">
+                        <button class="w-full flex items-center justify-center space-x-2 py-3 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
+                </div>
+
+            </main>
+            
+            <!-- Bottom Navigation -->
+            <nav class="glassmorphism rounded-t-2xl p-2">
+                <div class="flex justify-around">
+                    <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-400 transition-colors duration-200 active" data-page="dashboard">
+                        <i data-lucide="home"></i>
+                        <span class="text-xs font-medium">Home</span>
+                    </button>
+                    <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-400 transition-colors duration-200" data-page="my-herd">
+                        <i data-lucide="layout-grid"></i>
+                        <span class="text-xs font-medium">My Herd</span>
+                    </button>
+                    <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-white" data-page="register">
+                        <div class="bg-emerald-500 rounded-full p-4 -mt-8 shadow-lg shadow-emerald-500/30">
+                            <i data-lucide="plus" class="w-7 h-7"></i>
+                        </div>
+                    </button>
+                    <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-400 transition-colors duration-200" data-page="profile">
+                        <i data-lucide="user"></i>
+                        <span class="text-xs font-medium">Profile</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const navItems = document.querySelectorAll('.nav-item');
+        const drawerLinks = document.querySelectorAll('.drawer-link');
+        const pages = {
+            dashboard: document.getElementById('page-dashboard'),
+            'my-herd': document.getElementById('page-my-herd'),
+            register: document.getElementById('page-register'),
+            settings: document.getElementById('page-settings'),
+            profile: document.getElementById('page-profile'),
+            'health-analysis': document.getElementById('page-health-analysis'),
+            'breed-specs': document.getElementById('page-breed-specs'),
+        };
+
+        const mainHeader = document.getElementById('main-header');
+        const headerTitle = mainHeader.querySelector('p');
+        const drawer = document.getElementById('side-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const openDrawerBtn = document.getElementById('open-drawer-btn');
+        
+        const pageTitles = {
+            dashboard: 'Dashboard',
+            'my-herd': 'My Herd',
+            register: 'Register Animal',
+            settings: 'Settings',
+            profile: 'My Profile',
+            'health-analysis': 'Health Analysis',
+            'breed-specs': 'Breed Specifications'
+        };
+
+        function closeDrawer() {
+            drawer.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+
+        function openDrawer() {
+            drawer.classList.add('open');
+            overlay.classList.add('open');
+        }
+
+        function switchPage(pageName) {
+            closeDrawer();
+            
+            // Hide all pages
+            Object.values(pages).forEach(page => page.classList.add('hide'));
+            
+            // Show the selected page
+            if (pages[pageName]) {
+                pages[pageName].classList.remove('hide');
+            }
+
+            // Update header visibility and title
+            if(pageTitles[pageName]) {
+                 mainHeader.style.display = 'flex';
+                 headerTitle.textContent = pageTitles[pageName];
+            } else {
+                 mainHeader.style.display = 'none';
+            }
+            
+            // Update active state for bottom nav
+            navItems.forEach(item => {
+                if (item.dataset.page === pageName) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Update active state for drawer nav
+             drawerLinks.forEach(item => {
+                if (item.dataset.page === pageName) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        const allNavLinks = [...navItems, ...drawerLinks];
+        
+        allNavLinks.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageName = item.dataset.page;
+                
+                // Don't visually deactivate the middle button, but update others
+                if (pageName !== 'register') {
+                    allNavLinks.forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                    // Also activate corresponding item in other nav
+                    document.querySelector(`.nav-item[data-page="${pageName}"]`)?.classList.add('active');
+                    document.querySelector(`.drawer-link[data-page="${pageName}"]`)?.classList.add('active');
+                }
+
+                switchPage(pageName);
+            });
+        });
+
+        openDrawerBtn.addEventListener('click', openDrawer);
+        overlay.addEventListener('click', closeDrawer);
+
+        // Initial page load
+        switchPage('dashboard');
+
+        // Toggle switch logic
+        document.querySelector('.toggle-switch').addEventListener('click', function() {
+            this.classList.toggle('enabled');
+        });
+
+    </script>
+</body>
+</html>
+
+
